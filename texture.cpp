@@ -9,20 +9,17 @@
  *      o: path to the output png image
  *      h: height of output image
  *      w: width of output image
- *      r: rotation range (from -r to r) in degree
  *      s: scaling factor in float ((0, 0) is set to 1, (a, d * a) is set to scale ^ a)
  *      d: scaling direction in tangent form (d = delta_y / delta_x)
- *      t: number of iterations
- *      a: size of small sample
- *      e: size of overlap width
  *      m: patch finding mode (0 for Random placement, 1 for Entire patch matching, or 2 for Sub-patch matching)
  *
  * Usage:
- *      texture -i [input_file] -o [output_file] -h [height] -w [weight] -r [rot_range] -s [scale] -d [direction]
- *              -t [iteration] -a [size] -e [overlap] -m [patch_mode]
+ *      texture -i [input_file] -o [output_file] -h [height] -w [weight] -s [scale] -d [direction] -m [patch_mode]
  *
  * Example:
- *      texture -i samples/floor.jpg -o results/floor.jpg -h 256 -w 256 -a 64 -e 16
+ *      texture -i samples/floor.jpg -o results/floor.jpg -h 256 -w 256
+ *
+ * N.B: always use the power to 2 for dimension to simplify the calculation
  */
 
 #include <iostream>
@@ -37,10 +34,7 @@ enum Patch_Mode {Random, Entire, Sub_Match};
  * Texture generation function: the input and output matrix must be allocated with a valid dimension before calling
  * this function
  */
-void generate(Mat& input, Mat& output, int rot_range, float scaling_factor, float dir,
-              Patch_Mode patch_mode, int size, int overlap) {
-
-    // loop several time to get a good result
+void generate(Mat& input, Mat& output, float scaling_factor, float dir, Patch_Mode patch_mode) {
 
     int height = output.rows;
     int width = output.cols;
@@ -48,27 +42,31 @@ void generate(Mat& input, Mat& output, int rot_range, float scaling_factor, floa
     int sample_height = input.rows;
     int sample_width = input.cols;
 
-    int extra = size - overlap;
+    int overlap_height = sample_height / 4;
+    int overlap_width = sample_width / 4;
 
     // use a larger image to avoid border control
 
-    Mat temp(height + 2 * extra, width + 2 * extra, CV_8UC3);
+    Mat temp(height + sample_height, width + sample_width, CV_8UC3);
 
-    while(true) {
+    // loop in order to cover the whole image
 
-        // get a small piece of input file (eg. 32 * 32 or size * size)
+    for (int row_span = 0; overlap_height + sample_height * row_span < height; row_span++)
+        for (int col_span = 0; overlap_width + sample_width * col_span < width; col_span++) {
 
-        // put the piece on a temporary matrix and overlay it on the previous output matrix (with rotation and scaling)
+            // get a small piece of input file (eg. 32 * 32 or size * size) according to the patch_mode
 
-        // find the minimum cut inside the overlay area (eg. 8 or overlap in width)
+            // put the piece on a temporary matrix and overlay it on the previous output matrix (with rotation and scaling)
 
-        // generate new output matrix with the cut value
+            // find the minimum cut inside the overlay area (eg. 8 or overlap in width)
+
+            // generate new output matrix with the cut value
 
     }
 
     // return only a part of the large texture file
 
-    output = temp(Range(extra, height + extra), Range(extra, width + extra)).clone();
+    output = temp(Range(0, height), Range(0, width)).clone();
 
 }
 
@@ -83,45 +81,29 @@ int main(int argc, char** argv) {
     string output_file;
     int height = 0;
     int width = 0;
-    int rotation_range = 0;
     float scale = 1;
     float direction = 0;
-    int iteration = 0;
-    int size = 32;
-    int overlap = 8;
     Patch_Mode patch_mode = Random;
 
     for (int i = 1; i < argc; i++)
         switch (argv[i][1]) {
-            case 'h':
-                height = atoi(argv[++i]);
-                break;
-            case 'w':
-                width = atoi(argv[++i]);
-                break;
-            case 'r':
-                rotation_range = atoi(argv[++i]);
-                break;
-            case 's':
-                scale = float(atof(argv[++i]));
-                break;
-            case 'd':
-                direction = float(atof(argv[++i]));
-                break;
             case 'i': // input file
                 input_file = argv[++i];
                 break;
             case 'o': // output file
                 output_file = argv[++i];
                 break;
-            case 't':
-                iteration = atoi(argv[++i]);
+            case 'h':
+                height = atoi(argv[++i]);
                 break;
-            case 'a':
-                size = atoi(argv[++i]);
+            case 'w':
+                width = atoi(argv[++i]);
                 break;
-            case 'e':
-                overlap = atoi(argv[++i]);
+            case 's':
+                scale = float(atof(argv[++i]));
+                break;
+            case 'd':
+                direction = float(atof(argv[++i]));
                 break;
             case 'm':
                 patch_mode = Patch_Mode(atoi(argv[++i]));
@@ -133,8 +115,6 @@ int main(int argc, char** argv) {
     if (input_file == "" || output_file == "" || height == 0 || width == 0)
         return EXIT_FAILURE;
 
-    // post-processing
-
     // allocate the memory and load the image
 
     Mat input = imread(input_file, IMREAD_COLOR);
@@ -143,11 +123,9 @@ int main(int argc, char** argv) {
     imshow(input_file, input);
     waitKey(0);
 
-    assert(input.rows >= size && input.cols >= size);
-
     // call the function
 
-    generate(input, output, rotation_range, scale, direction, patch_mode, size, overlap);
+    generate(input, output, scale, direction, patch_mode);
 
     // show/save the result
 
