@@ -35,7 +35,7 @@ void generate(Mat& input, Mat& output, int iteration,  int rot_range = 0, int sc
 
         // put the piece on a temporary matrix and overlay it on the previous output matrix (with rotation and scaling)
 
-        // find the minimum cut
+        // find the minimum cut inside the overlay area (eg. 4 or 8 in width)
 
         // generate new output matrix with the cut value
 
