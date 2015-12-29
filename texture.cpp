@@ -12,9 +12,11 @@
  *      s: scaling factor in float ((0, 0) is set to 1, (a, d * a) is set to scale ^ a)
  *      d: scaling direction in tangent form (d = delta_y / delta_x)
  *      m: patch finding mode (0 for Random placement, 1 for Entire patch matching, or 2 for Sub-patch matching)
+ *      t: number of iterations
  *
  * Usage:
  *      texture -i [input_file] -o [output_file] -h [height] -w [weight] -s [scale] -d [direction] -m [patch_mode]
+ *              -t [iteration]
  *
  * Example:
  *      texture -i samples/floor.jpg -o results/floor.jpg -h 256 -w 256
@@ -34,7 +36,7 @@ enum Patch_Mode {Random, Entire, Sub_Match};
  * Texture generation function: the input and output matrix must be allocated with a valid dimension before calling
  * this function
  */
-void generate(Mat& input, Mat& output, float scaling_factor, float dir, Patch_Mode patch_mode) {
+void generate(Mat& input, Mat& output, int iteration, float scaling_factor, float dir, Patch_Mode patch_mode) {
 
     int height = output.rows;
     int width = output.cols;
@@ -45,14 +47,19 @@ void generate(Mat& input, Mat& output, float scaling_factor, float dir, Patch_Mo
     int overlap_height = sample_height / 4;
     int overlap_width = sample_width / 4;
 
-    // use a larger image to avoid border control
+    // write directly on the output
 
-    Mat temp(height + sample_height, width + sample_width, CV_8UC3);
+    Mat coverage(height, width, CV_8UC1, Scalar_::all(0));
+
+    for (int row = 0; row < sample_height; row++)
+        for (int col = 0; col < sample_width; col++)
+            output.at<Vec3b>(row, col) = input.at<Vec3b>(row, col);
 
     // loop in order to cover the whole image
 
-    for (int row_span = 0; overlap_height + sample_height * row_span < height; row_span++)
-        for (int col_span = 0; overlap_width + sample_width * col_span < width; col_span++) {
+    while(iteration--) {
+
+        for (int z = 0; z < 1000; z++) {
 
             // get a small piece of input file (eg. 32 * 32 or size * size) according to the patch_mode
 
@@ -61,12 +68,9 @@ void generate(Mat& input, Mat& output, float scaling_factor, float dir, Patch_Mo
             // find the minimum cut inside the overlay area (eg. 8 or overlap in width)
 
             // generate new output matrix with the cut value
+        }
 
     }
-
-    // return only a part of the large texture file
-
-    output = temp(Range(0, height), Range(0, width)).clone();
 
 }
 
@@ -84,6 +88,7 @@ int main(int argc, char** argv) {
     float scale = 1;
     float direction = 0;
     Patch_Mode patch_mode = Random;
+    int iteration;
 
     for (int i = 1; i < argc; i++)
         switch (argv[i][1]) {
@@ -108,6 +113,9 @@ int main(int argc, char** argv) {
             case 'm':
                 patch_mode = Patch_Mode(atoi(argv[++i]));
                 break;
+            case 't':
+                iteration = atoi(argv[++i]);
+                break;
             default:
                 return EXIT_FAILURE;
         }
@@ -118,14 +126,14 @@ int main(int argc, char** argv) {
     // allocate the memory and load the image
 
     Mat input = imread(input_file, IMREAD_COLOR);
-    Mat output;
+    Mat output(height, width, CV_8UC3);
 
     imshow(input_file, input);
     waitKey(0);
 
     // call the function
 
-    generate(input, output, scale, direction, patch_mode);
+    generate(input, output, iteration, scale, direction, patch_mode);
 
     // show/save the result
 
