@@ -15,10 +15,11 @@
  *      t: number of iterations
  *      a: size of small sample
  *      e: size of overlap width
+ *      m: patch finding mode (0 for Random placement, 1 for Entire patch matching, or 2 for Sub-patch matching)
  *
  * Usage:
  *      texture -i [input_file] -o [output_file] -h [height] -w [weight] -r [rot_range] -s [scale] -d [direction]
- *              -t [iteration] -a [size] -e [overlap]
+ *              -t [iteration] -a [size] -e [overlap] -m [patch_mode]
  *
  * Example:
  *      texture -i samples/floor.jpg -o results/floor.jpg -h 256 -w 256 -a 64 -e 16
@@ -30,11 +31,14 @@
 using namespace std;
 using namespace cv;
 
+enum Patch_Mode {Random, Entire, Sub_Match};
+
 /**
  * Texture generation function: the input and output matrix must be allocated with a valid dimension before calling
  * this function
  */
-void generate(Mat& input, Mat& output, int size, int overlap, int iteration, int rot_range, float scaling_factor, float dir) {
+void generate(Mat& input, Mat& output, int rot_range, float scaling_factor, float dir,
+              Patch_Mode patch_mode, int size, int overlap) {
 
     // loop several time to get a good result
 
@@ -50,9 +54,7 @@ void generate(Mat& input, Mat& output, int size, int overlap, int iteration, int
 
     Mat temp(height + 2 * extra, width + 2 * extra, CV_8UC3);
 
-
-
-    while(iteration--) {
+    while(true) {
 
         // get a small piece of input file (eg. 32 * 32 or size * size)
 
@@ -87,6 +89,7 @@ int main(int argc, char** argv) {
     int iteration = 0;
     int size = 32;
     int overlap = 8;
+    Patch_Mode patch_mode = Random;
 
     for (int i = 1; i < argc; i++)
         switch (argv[i][1]) {
@@ -120,12 +123,17 @@ int main(int argc, char** argv) {
             case 'e':
                 overlap = atoi(argv[++i]);
                 break;
+            case 'm':
+                patch_mode = Patch_Mode(atoi(argv[++i]));
+                break;
             default:
                 return EXIT_FAILURE;
         }
 
     if (input_file == "" || output_file == "" || height == 0 || width == 0)
         return EXIT_FAILURE;
+
+    // post-processing
 
     // allocate the memory and load the image
 
@@ -135,9 +143,11 @@ int main(int argc, char** argv) {
     imshow(input_file, input);
     waitKey(0);
 
+    assert(input.rows >= size && input.cols >= size);
+
     // call the function
 
-    generate(input, output, size, overlap, iteration, rotation_range, scale, direction);
+    generate(input, output, rotation_range, scale, direction, patch_mode, size, overlap);
 
     // show/save the result
 
