@@ -12,9 +12,11 @@
  *      r: rotation range (from -r to r) in degree
  *      s: scaling factor in float ((0, 0) is set to 1, (a, d * a) is set to scale ^ a)
  *      d: scaling direction in tangent form (d = delta_y / delta_x)
+ *      t: number of iterations
  *
  * Usage:
  *      texture -i [input_file] -o [output_file] -h [height] -w [weight] -r [rot_range] -s [scale] -d [direction]
+ *              -t [iteration]
  */
 
 #include <iostream>
@@ -24,11 +26,13 @@
 using namespace std;
 using namespace cv;
 
+const int extra = 24;
+
 /**
  * Texture generation function: the input and output matrix must be allocated with a valid dimension before calling
  * this function
  */
-void generate(Mat& input, Mat& output, int iteration,  int rot_range, int scaling_factor, int dir) {
+void generate(Mat& input, Mat& output, int iteration, int rot_range, float scaling_factor, float dir) {
     // loop several time to get a good result
     while(iteration--) {
         // get a small piece of input file (eg. 32 * 32)
@@ -56,6 +60,7 @@ int main(int argc, char** argv) {
     int rotation_range = 0;
     float scale = 1;
     float direction = 0;
+    int iteration = 1;
 
     for (int i = 1; i < argc; i++)
         switch(argv[i][1]) {
@@ -80,6 +85,8 @@ int main(int argc, char** argv) {
             case 'o': // output file
                 output_file = argv[++i];
                 break;
+            case 't':
+                iteration = atoi(argv[++i]);
             default:
                 return EXIT_FAILURE;
         }
@@ -89,7 +96,9 @@ int main(int argc, char** argv) {
 
     // allocate the memory and load the image
 
-
+    Mat input = imread(input_file);
+    Mat output(height, width, CV_8UC3, Scalar_::all(0));
+    generate(input, output, iteration, rotation_range, scale, direction);
 
     // call the function
 
