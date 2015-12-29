@@ -13,10 +13,12 @@
  *      s: scaling factor in float ((0, 0) is set to 1, (a, d * a) is set to scale ^ a)
  *      d: scaling direction in tangent form (d = delta_y / delta_x)
  *      t: number of iterations
+ *      a: size of small sample
+ *      e: size of overlap width
  *
  * Usage:
  *      texture -i [input_file] -o [output_file] -h [height] -w [weight] -r [rot_range] -s [scale] -d [direction]
- *              -t [iteration]
+ *              -t [iteration] -a [size] -e [overlap]
  */
 
 #include <iostream>
@@ -26,24 +28,44 @@
 using namespace std;
 using namespace cv;
 
-const int extra = 24;
-
 /**
  * Texture generation function: the input and output matrix must be allocated with a valid dimension before calling
  * this function
  */
-void generate(Mat& input, Mat& output, int iteration, int rot_range, float scaling_factor, float dir) {
+void generate(Mat& input, Mat& output, int size, int overlap, int iteration, int rot_range, float scaling_factor, float dir) {
+
     // loop several time to get a good result
+
+    int height = output.rows;
+    int width = output.cols;
+
+    int sample_height = input.rows;
+    int sample_width = input.cols;
+
+    int extra = size - overlap;
+
+    // use a larger image to avoid border control
+
+    Mat temp(height + 2 * extra, width + 2 * extra, CV_8UC3, Scalar_::all(0));
+
     while(iteration--) {
-        // get a small piece of input file (eg. 32 * 32)
+
+        // get a small piece of input file (eg. 32 * 32 or size * size)
 
         // put the piece on a temporary matrix and overlay it on the previous output matrix (with rotation and scaling)
 
-        // find the minimum cut inside the overlay area (eg. 4 or 8 in width)
+        // find the minimum cut inside the overlay area (eg. 8 or overlap in width)
 
         // generate new output matrix with the cut value
 
     }
+
+    // return only a part of the large texture file
+
+    for (int i = 0; i < height; i++)
+        for (int j = 0; j < width; j++)
+            output.at<Vec3d>(i, j) = temp.at<Vec3d>(extra + i, extra + j);
+
 }
 
 /*
@@ -61,6 +83,8 @@ int main(int argc, char** argv) {
     float scale = 1;
     float direction = 0;
     int iteration = 1;
+    int size = 32;
+    int overlap = 8;
 
     for (int i = 1; i < argc; i++)
         switch(argv[i][1]) {
@@ -87,6 +111,10 @@ int main(int argc, char** argv) {
                 break;
             case 't':
                 iteration = atoi(argv[++i]);
+            case 'a':
+                size = atoi(argv[++i]);
+            case 'e':
+                overlap = atoi(argv[++i]);
             default:
                 return EXIT_FAILURE;
         }
@@ -98,11 +126,15 @@ int main(int argc, char** argv) {
 
     Mat input = imread(input_file);
     Mat output(height, width, CV_8UC3, Scalar_::all(0));
-    generate(input, output, iteration, rotation_range, scale, direction);
 
     // call the function
 
+    generate(input, output, size, overlap, iteration, rotation_range, scale, direction);
+
     // show/save the result
+
+    imshow(output_file, output);
+    waitKey(0);
 
     return EXIT_SUCCESS;
 }
