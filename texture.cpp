@@ -19,11 +19,13 @@
  * Usage:
  *      texture -i [input_file] -o [output_file] -h [height] -w [weight] -r [rot_range] -s [scale] -d [direction]
  *              -t [iteration] -a [size] -e [overlap]
+ *
+ * Example:
+ *      texture -i samples/floor.jpg -o results/floor.jpg -h 256 -w 256 -a 64 -e 16
  */
 
 #include <iostream>
 #include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
 
 using namespace std;
 using namespace cv;
@@ -46,7 +48,9 @@ void generate(Mat& input, Mat& output, int size, int overlap, int iteration, int
 
     // use a larger image to avoid border control
 
-    Mat temp(height + 2 * extra, width + 2 * extra, CV_8UC3, Scalar_::all(0));
+    Mat temp(height + 2 * extra, width + 2 * extra, CV_8UC3);
+
+
 
     while(iteration--) {
 
@@ -62,9 +66,7 @@ void generate(Mat& input, Mat& output, int size, int overlap, int iteration, int
 
     // return only a part of the large texture file
 
-    for (int i = 0; i < height; i++)
-        for (int j = 0; j < width; j++)
-            output.at<Vec3d>(i, j) = temp.at<Vec3d>(extra + i, extra + j);
+    output = temp(Range(extra, height + extra), Range(extra, width + extra)).clone();
 
 }
 
@@ -82,12 +84,12 @@ int main(int argc, char** argv) {
     int rotation_range = 0;
     float scale = 1;
     float direction = 0;
-    int iteration = 1;
+    int iteration = 0;
     int size = 32;
     int overlap = 8;
 
     for (int i = 1; i < argc; i++)
-        switch(argv[i][1]) {
+        switch (argv[i][1]) {
             case 'h':
                 height = atoi(argv[++i]);
                 break;
@@ -111,10 +113,13 @@ int main(int argc, char** argv) {
                 break;
             case 't':
                 iteration = atoi(argv[++i]);
+                break;
             case 'a':
                 size = atoi(argv[++i]);
+                break;
             case 'e':
                 overlap = atoi(argv[++i]);
+                break;
             default:
                 return EXIT_FAILURE;
         }
@@ -124,8 +129,11 @@ int main(int argc, char** argv) {
 
     // allocate the memory and load the image
 
-    Mat input = imread(input_file);
-    Mat output(height, width, CV_8UC3, Scalar_::all(0));
+    Mat input = imread(input_file, IMREAD_COLOR);
+    Mat output;
+
+    imshow(input_file, input);
+    waitKey(0);
 
     // call the function
 
