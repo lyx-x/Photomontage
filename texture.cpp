@@ -28,9 +28,9 @@ using namespace cv;
  * Texture generation function: the input and output matrix must be allocated with a valid dimension before calling
  * this function
  */
-void generate(Mat& input, Mat& output, int iteration,  int rot_range = 0, int scaling_factor = 100, int dir = 0) {
+void generate(Mat& input, Mat& output, int iteration,  int rot_range, int scaling_factor, int dir) {
     // loop several time to get a good result
-
+    while(iteration--) {
         // get a small piece of input file (eg. 32 * 32)
 
         // put the piece on a temporary matrix and overlay it on the previous output matrix (with rotation and scaling)
@@ -39,15 +39,57 @@ void generate(Mat& input, Mat& output, int iteration,  int rot_range = 0, int sc
 
         // generate new output matrix with the cut value
 
+    }
 }
 
 /*
  * Main function parses the parameters, allocates the memory and calls the corresponding function
  */
 int main(int argc, char** argv) {
+
     // reading the parameters
 
+    string input_file;
+    string output_file;
+    int height = 0;
+    int width = 0;
+    int rotation_range = 0;
+    float scale = 1;
+    float direction = 0;
+
+    for (int i = 1; i < argc; i++)
+        switch(argv[i][1]) {
+            case 'h':
+                height = atoi(argv[++i]);
+                break;
+            case 'w':
+                width = atoi(argv[++i]);
+                break;
+            case 'r':
+                rotation_range = atoi(argv[++i]);
+                break;
+            case 's':
+                scale = float(atof(argv[++i]));
+                break;
+            case 'd':
+                direction = float(atof(argv[++i]));
+                break;
+            case 'i': // input file
+                input_file = argv[++i];
+                break;
+            case 'o': // output file
+                output_file = argv[++i];
+                break;
+            default:
+                return EXIT_FAILURE;
+        }
+
+    if (input_file == "" || output_file == "" || height == 0 || width == 0)
+        return EXIT_FAILURE;
+
     // allocate the memory and load the image
+
+
 
     // call the function
 
