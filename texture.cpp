@@ -59,16 +59,13 @@ void generate(Mat& input, Mat& output, int iteration, float scaling_factor, floa
 
     while(iteration--) {
 
-        for (int z = 0; z < 1000; z++) {
+        // get a small piece of input file (eg. 32 * 32 or size * size) according to the patch_mode
 
-            // get a small piece of input file (eg. 32 * 32 or size * size) according to the patch_mode
+        // put the piece on a temporary matrix and overlay it on the previous output matrix (with rotation and scaling)
 
-            // put the piece on a temporary matrix and overlay it on the previous output matrix (with rotation and scaling)
+        // find the minimum cut inside the overlay area (eg. 8 or overlap in width)
 
-            // find the minimum cut inside the overlay area (eg. 8 or overlap in width)
-
-            // generate new output matrix with the cut value
-        }
+        // generate new output matrix with the cut value
 
     }
 
