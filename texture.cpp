@@ -22,7 +22,7 @@
  *      texture -i samples/floor.jpg -o results/floor.jpg -h 256 -w 256
  *
  * N.B: always use the power to 2 for dimension to simplify the calculation
- *test/
+ */
 
 #include <iostream>
 #include <opencv2/highgui/highgui.hpp>
