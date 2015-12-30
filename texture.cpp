@@ -49,7 +49,7 @@ void generate(Mat& input, Mat& output, int iteration, float scaling_factor, floa
 
     // write directly on the output
 
-    Mat coverage(height, width, CV_8UC1, Scalar_::all(0));
+    Mat coverage(height, width, CV_8UC1);
 
     for (int row = 0; row < sample_height; row++)
         for (int col = 0; col < sample_width; col++)
