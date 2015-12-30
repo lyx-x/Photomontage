@@ -9,8 +9,12 @@
 #include <iostream>
 #include <opencv2/highgui/highgui.hpp>
 
+#include "maxflow/graph.h"
+
 using namespace std;
 using namespace cv;
+
+const int infinity = 1<<31;
 
 vector<Mat> photos;
 
@@ -40,8 +44,53 @@ void init() {
  *      index_new: index of the new patch
  *
  */
-void assemble(int index_new) {
 
+//return the norme of nap[x1,y1] - photo[i][x2,y2]
+int cost(int i, int x1, int y1, int x2, int y2){
+    return 0;
+}
+
+void assemble(int index_new) {
+    //the overlapped part of nap and photo[index_new]
+    int height = 0;
+    int width = 0;
+    int x1 = 0, y1 = 0;
+    int x2 = 0, y2 = 0;
+
+    //graphcut
+    Graph<int,int,int> g(height *  width + 2 , 1);
+    g.add_node(height * width);
+    /* 0 4 8
+     * 1 5 9
+     * 2 6 10
+     * 3 7 11
+     */
+
+    //add arcs from border to source and sink
+    for(int i = 0; i < height; i++){
+        g.add_tweights(i, infinity, infinity);
+        g.add_tweights(height * width - i , infinity, infinity);
+    }
+
+    //calculate the cost M of all pixels
+    Mat costs(height, width, CV_8UC1);
+    for(int i = 0; i < height; i++){
+        for(int j = 0; j < width; j++){
+            costs.at<uchar>(i,j) = (int)cost(index_new, x1 + i, y1 + j, x2 + i, y2 + j);
+        }
+    }
+
+    //add edge between adjacent nodes
+    for(int i = 0; i < height - 1; i++){
+        for(int j = 0; j < width - 1; j++){
+            int M1 = costs.at<uchar>(i,j) + costs.at<uchar>(i+1,j);
+            int M2 = costs.at<uchar>(i,j) + costs.at<uchar>(i,j + 1);
+            g.add_edge(i * width + j, i * width + j + 1, M1, M1);
+            g.add_edge(i * width + j, (i + 1) * width + j, M2, M2);
+        }
+    }
+    int flow = g.maxflow();
+    
 }
 
 void assemble() {
