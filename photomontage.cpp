@@ -30,6 +30,7 @@ Mat mask;
 
 int max_row = 600; // number of rows in the output
 int max_col = 1024; // number of columns in the output
+int interior_gap = 8;
 
 void init() {
     for (int row = 0; row < nap.rows; row++)
@@ -61,6 +62,18 @@ inline bool is_overlapped(int row, int col) {
 
 inline bool is_overlapped(pair<int,int> pixel) {
     return is_overlapped(pixel.first, pixel.second);
+}
+
+inline bool is_interior(int row, int col){
+    if (row  - interior_gap < 0 || row + interior_gap >= max_row)
+        return false;
+    if (col - interior_gap < 0 || col + interior_gap >= max_col)
+        return false;
+    return (mask.at<Vec3s>(row, col)[0] >= 0 && mask.at<Vec3s>(row - interior_gap, col - interior_gap)[0] >= 0 && mask.at<Vec3s>(row + interior_gap, col + interior_gap)[0] >= 0);
+}
+
+inline bool is_interior(pair<int,int> pixel){
+    return is_interior(pixel.first, pixel.second);
 }
 
 // Return the norm of nap[row + offset_row,col + offset_col] - photos[index_new][row,col]
