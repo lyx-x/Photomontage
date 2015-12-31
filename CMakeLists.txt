@@ -11,5 +11,5 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 add_executable(texture texture.cpp)
 target_link_libraries(texture ${OpenCV_LIBS})
 
-add_executable(montage photomontage.cpp Graph.cpp Graph.h)
+add_executable(montage photomontage.cpp graph.cpp graph.h)
 target_link_libraries(montage ${OpenCV_LIBS})

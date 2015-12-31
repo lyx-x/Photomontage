@@ -9,10 +9,14 @@
 #include <iostream>
 #include <opencv2/highgui/highgui.hpp>
 
-#include "maxflow/graph.h"
+#include "graph.h"
 
 using namespace std;
 using namespace cv;
+
+struct seam_t {
+
+};
 
 const int infinity = 1<<31;
 
@@ -23,6 +27,9 @@ int*value_col;
 Mat nap;
 Mat mask;
 
+int max_row = 600; // number of rows in the output
+int max_col = 1024; // number of columns in the output
+
 void init() {
     for (int row = 0; row < nap.rows; row++)
         for (int col = 0; col < nap.cols; col++) {
@@ -30,6 +37,15 @@ void init() {
             mask.at<Vec3s>(row, col) = Vec3s(0, 0, 0);
         }
 }
+
+inline int to_index(int row, int col) {
+    return row * max_col + col;
+}
+
+inline pair<int,int> to_pixel(int index) {
+    return make_pair(index / max_col, index % max_col);
+};
+
 
 /*
  * Assemble two photos, the existing image is described with a mask matrix indicating to witch image belongs each pixel,
@@ -64,14 +80,23 @@ void assemble(int index_new) {
     int offset_col = value_col[index_new];
     
     vector<pair<int,int>> overlap;
-    for (int row = 0; row < nap.rows; row++)
-        for (int col = 0; col < nap.cols; col++)
+    for (int row = 0; row < patch.rows; row++)
+        for (int col = 0; col < patch.cols; col++)
             if (mask.at<Vec3s>(row + offset_row, col + offset_col)[0] >= 0)
                 overlap.push_back(make_pair(row, col));
 
+    vector<seam_t> old_seams;
+
+    // TODO add old seams in the graph
 
     // Graph cut
 
+    Graph graph(overlap.size() + old_seams.size() + 2); // including the source and the sink
+    int source = int(overlap.size() + old_seams.size());
+    int sink = source + 1;
+
+
+    /*
     int overlap_area = int(overlap.size());
     Graph<int,int,int> g(overlap_area + 2 , 1);
 
@@ -82,7 +107,7 @@ void assemble(int index_new) {
      * 1 5 9
      * 2 6 10
      * 3 7 11
-     */
+     *
 
     // add arcs from border to source and sink
     
@@ -110,7 +135,7 @@ void assemble(int index_new) {
         }
     }
     int flow = g.maxflow();
-    
+    */
 }
 
 void assemble() {
@@ -138,8 +163,6 @@ void track(int, void*) {
 
 int main() {
 
-    int max_height = 600;
-    int max_width = 1024;
 
     // read arguments, to be replaced
 
@@ -178,8 +201,8 @@ int main() {
         value_row[i] = 0;
         value_col[i] = 0;
         // add position control
-        createTrackbar("Row_" + to_string(i + 1), "Control", value_row + i, max_height - photos[i].rows - 1, track);
-        createTrackbar("Col_" + to_string(i + 1), "Control", value_col + i, max_width - photos[i].cols - 1, track);
+        createTrackbar("Row_" + to_string(i + 1), "Control", value_row + i, max_row - photos[i].rows - 1, track);
+        createTrackbar("Col_" + to_string(i + 1), "Control", value_col + i, max_col - photos[i].cols - 1, track);
     }
 
     waitKey(0);
