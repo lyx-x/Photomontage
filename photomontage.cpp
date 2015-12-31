@@ -7,6 +7,7 @@
  */
 
 #include <iostream>
+#include <map>
 #include <opencv2/highgui/highgui.hpp>
 
 #include "graph.h"
@@ -42,9 +43,35 @@ inline int to_index(int row, int col) {
     return row * max_col + col;
 }
 
+inline int to_index(pair<int,int> pixel) {
+    return to_index(pixel.first, pixel.second);
+}
+
 inline pair<int,int> to_pixel(int index) {
     return make_pair(index / max_col, index % max_col);
 };
+
+inline bool is_overlapped(int row, int col) {
+    if (row < 0 || row >= max_row)
+        return false;
+    if (col < 0 || col >= max_col)
+        return false;
+    return mask.at<Vec3s>(row, col)[0] >= 0;
+}
+
+inline bool is_overlapped(pair<int,int> pixel) {
+    return is_overlapped(pixel.first, pixel.second);
+}
+
+// Return the norm of nap[row + offset_row,col + offset_col] - photos[index_new][row,col]
+inline int norm(int index_new, int row, int col) {
+    return 0;
+}
+
+// return the matching cost between nap[row1,col1] and nap[row2,col2]
+inline int cost(int index_new, int row1, int col1, int row2, int col2) {
+    return norm(index_new, row1, col1) + norm(index_new, row2, col2);
+}
 
 
 /*
@@ -60,30 +87,22 @@ inline pair<int,int> to_pixel(int index) {
  *      index_new: index of the new patch
  *
  */
-
-// return the norm of nap[x1,y1] - photos[i][x2,y2]
-int cost(int i, int x1, int y1, int x2, int y2) {
-    return 0;
-}
-
 void assemble(int index_new) {
     
     // the overlapped part of nap and photos[index_new]
-    
-    int height = 0;
-    int width = 0;
-    int x1 = 0, y1 = 0;
-    int x2 = 0, y2 = 0;
     
     Mat patch = photos[index_new];
     int offset_row = value_row[index_new];
     int offset_col = value_col[index_new];
     
     vector<pair<int,int>> overlap;
+    map<pair<int,int>,int> map_overlap;
     for (int row = 0; row < patch.rows; row++)
         for (int col = 0; col < patch.cols; col++)
-            if (mask.at<Vec3s>(row + offset_row, col + offset_col)[0] >= 0)
+            if (is_overlapped(row + offset_row, col + offset_col)) {
+                map_overlap[make_pair(row, col)] = int(overlap.size()); // store the index
                 overlap.push_back(make_pair(row, col));
+            }
 
     vector<seam_t> old_seams;
 
@@ -95,8 +114,45 @@ void assemble(int index_new) {
     int source = int(overlap.size() + old_seams.size());
     int sink = source + 1;
 
+    // Add adjacent edges
+
+    for (int i = 0; i < overlap.size(); i++) {
+        // Consider the pixel under it and on its right
+        int row = overlap[i].first;
+        int col = overlap[i].second;
+        if (is_overlapped(row + 1, col))
+            graph.add_edge(i, map_overlap[make_pair(row + 1, col)], cost(index_new, row, col, row + 1, col));
+        if (is_overlapped(row, col + 1))
+            graph.add_edge(i, map_overlap[make_pair(row + 1, col)], cost(index_new, row, col, row, col + 1));
+    }
+
+    // Add seam edges
+
+    // TODO
+
+    // Add constraints for source
+
+    // TODO
+
+    // Add constraints for sink
+
+    // TODO
+
+    // Compute the min-cut
+
+    // TODO
+
+    // Get new color for all overlapped pixels
+
+    // TODO
 
     /*
+
+    int height = 0;
+    int width = 0;
+    int x1 = 0, y1 = 0;
+    int x2 = 0, y2 = 0;
+
     int overlap_area = int(overlap.size());
     Graph<int,int,int> g(overlap_area + 2 , 1);
 
