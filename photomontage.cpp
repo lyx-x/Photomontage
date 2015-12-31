@@ -66,7 +66,7 @@ inline bool is_overlapped(pair<int,int> pixel) {
     return is_overlapped(pixel.first, pixel.second);
 }
 
-inline bool is_interior(int row, int col, int photo_index){
+inline bool is_interior_photo(int row, int col, int photo_index){
     if (row - interior_gap < photos[photo_index].rows || row + interior_gap >= photos[photo_index].rows + value_row[photo_index])
         return false;
     if (col - interior_gap < photos[photo_index].cols || col + interior_gap >= photos[photo_index].cols + value_col[photo_index])
@@ -74,8 +74,30 @@ inline bool is_interior(int row, int col, int photo_index){
     return true;
 }
 
-inline bool is_interior(pair<int,int> pixel, int photo_index){
-    return is_interior(pixel.first, pixel.second, photo_index);
+inline bool is_interior_photo(pair<int,int> pixel, int photo_index){
+    return is_interior_photo(pixel.first, pixel.second, photo_index);
+}
+
+inline bool is_interior_mask(int row, int col){
+    if (row - interior_gap < 0 || row + interior_gap >= max_row)
+        return false;
+    if (col - interior_gap < 0 || col + interior_gap >= max_col)
+        return false;
+    return (mask.at<Vec3s>(row, col)[0] >= 0 && mask.at<Vec3s>(row - interior_gap, col - interior_gap)[0] >= 0 && mask.at<Vec3s>(row + interior_gap, col + interior_gap)[0] >= 0);
+}
+
+inline bool is_interior_mask(pair<int,int> pixel){
+    return is_interior_mask(pixel.first, pixel.second);
+}
+
+inline bool at_photo_border(int row, int col, int photo_index){
+   if (row == value_row[photo_index] || row == value_row[photo_index] + photos[photo_index].rows - 1)
+       return true;
+   return (col == value_col[photo_index] || col == value_col[photo_index] + photos[photo_index].cols - 1);
+}
+
+inline bool at_photo_border(pair<int,int>pixel, int photo_index){
+    return at_photo_border(pixel.first, pixel.second, photo_index);
 }
 
 // Return the norm of nap[row + offset_row,col + offset_col] - photos[index_new][row,col]
@@ -141,10 +163,13 @@ void assemble(int index_new) {
         if (is_overlapped(row, col + 1))
             graph.add_edge(i, map_overlap[make_pair(row + 1, col)], cost(index_new, row, col, row, col + 1), cost(index_new, row, col, row, col + 1));
         // Add constraints for source and sink
-        if (is_interior(overlap[i])){
-            graph
+        if (is_interior_photo(overlap[i],index_new)){
+            graph.add_tweights(i,0,infinity);
+        }else if(is_interior_mask(overlap[i]) && at_photo_border(overlap[i],index_new)){
+            graph.add_tweights(i,infinity,0);
+        }else{
+            graph.add_tweights(i,0,0);
         }
-
     }
 
     // Add seam edges
@@ -153,11 +178,10 @@ void assemble(int index_new) {
 
     // Compute the min-cut
 
-    // TODO
+    int flow = graph.maxflow();
 
     // Get new color for all overlapped pixels
-
-    // TODO
+    
 
     /*
 
