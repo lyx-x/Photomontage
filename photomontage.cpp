@@ -10,7 +10,9 @@
 #include <map>
 #include <opencv2/highgui/highgui.hpp>
 
-#include "graph.h"
+#include "maxflow/graph.h"
+
+//#include "graph.h"
 
 using namespace std;
 using namespace cv;
@@ -64,16 +66,16 @@ inline bool is_overlapped(pair<int,int> pixel) {
     return is_overlapped(pixel.first, pixel.second);
 }
 
-inline bool is_interior(int row, int col){
-    if (row  - interior_gap < 0 || row + interior_gap >= max_row)
+inline bool is_interior(int row, int col, int photo_index){
+    if (row - interior_gap < photos[photo_index].rows || row + interior_gap >= photos[photo_index].rows + value_row[photo_index])
         return false;
-    if (col - interior_gap < 0 || col + interior_gap >= max_col)
+    if (col - interior_gap < photos[photo_index].cols || col + interior_gap >= photos[photo_index].cols + value_col[photo_index])
         return false;
-    return (mask.at<Vec3s>(row, col)[0] >= 0 && mask.at<Vec3s>(row - interior_gap, col - interior_gap)[0] >= 0 && mask.at<Vec3s>(row + interior_gap, col + interior_gap)[0] >= 0);
+    return true;
 }
 
-inline bool is_interior(pair<int,int> pixel){
-    return is_interior(pixel.first, pixel.second);
+inline bool is_interior(pair<int,int> pixel, int photo_index){
+    return is_interior(pixel.first, pixel.second, photo_index);
 }
 
 // Return the norm of nap[row + offset_row,col + offset_col] - photos[index_new][row,col]
@@ -123,31 +125,29 @@ void assemble(int index_new) {
 
     // Graph cut
 
-    Graph graph(overlap.size() + old_seams.size() + 2); // including the source and the sink
+    Graph<int,int,int> graph(overlap.size() + old_seams.size() + 2,1); // including the source and the sink
     int source = int(overlap.size() + old_seams.size());
     int sink = source + 1;
 
-    // Add adjacent edges
+
 
     for (int i = 0; i < overlap.size(); i++) {
         // Consider the pixel under it and on its right
         int row = overlap[i].first;
         int col = overlap[i].second;
+        // Add adjacent edges
         if (is_overlapped(row + 1, col))
-            graph.add_edge(i, map_overlap[make_pair(row + 1, col)], cost(index_new, row, col, row + 1, col));
+            graph.add_edge(i, map_overlap[make_pair(row + 1, col)], cost(index_new, row, col, row + 1, col), cost(index_new, row, col, row + 1, col));
         if (is_overlapped(row, col + 1))
-            graph.add_edge(i, map_overlap[make_pair(row + 1, col)], cost(index_new, row, col, row, col + 1));
+            graph.add_edge(i, map_overlap[make_pair(row + 1, col)], cost(index_new, row, col, row, col + 1), cost(index_new, row, col, row, col + 1));
+        // Add constraints for source and sink
+        if (is_interior(overlap[i])){
+            graph
+        }
+
     }
 
     // Add seam edges
-
-    // TODO
-
-    // Add constraints for source
-
-    // TODO
-
-    // Add constraints for sink
 
     // TODO
 
