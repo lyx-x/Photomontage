@@ -67,11 +67,8 @@ inline bool is_overlapped(pair<int,int> pixel) {
 }
 
 inline bool is_interior_photo(int row, int col, int photo_index){
-    if (row - interior_gap < photos[photo_index].rows || row + interior_gap >= photos[photo_index].rows + value_row[photo_index])
-        return false;
-    if (col - interior_gap < photos[photo_index].cols || col + interior_gap >= photos[photo_index].cols + value_col[photo_index])
-        return false;
-    return true;
+    return (row >= interior_gap && row + interior_gap < photos[photo_index].rows
+            && col >= interior_gap && col + interior_gap < photos[photo_index].cols);
 }
 
 inline bool is_interior_photo(pair<int,int> pixel, int photo_index){
@@ -91,9 +88,9 @@ inline bool is_interior_mask(pair<int,int> pixel){
 }
 
 inline bool at_photo_border(int row, int col, int photo_index){
-   if (row == value_row[photo_index] || row == value_row[photo_index] + photos[photo_index].rows - 1)
+   if (row == 0 || row == photos[photo_index].rows - 1)
        return true;
-   return (col == value_col[photo_index] || col == value_col[photo_index] + photos[photo_index].cols - 1);
+   return (col == 0 || col == photos[photo_index].cols - 1);
 }
 
 inline bool at_photo_border(pair<int,int>pixel, int photo_index){
@@ -165,7 +162,7 @@ void assemble(int index_new) {
         // Add constraints for source and sink
         if (is_interior_photo(overlap[i],index_new)){
             graph.add_tweights(i,0,infinity);
-        }else if(is_interior_mask(overlap[i]) && at_photo_border(overlap[i],index_new)){
+        }else if(is_interior_mask(row + offset_row, col + offset_col) && at_photo_border(overlap[i],index_new)){
             graph.add_tweights(i,infinity,0);
         }else{
             graph.add_tweights(i,0,0);
@@ -181,7 +178,21 @@ void assemble(int index_new) {
     int flow = graph.maxflow();
 
     // Get new color for all overlapped pixels
-    
+
+    for (int row = 0; row < patch.rows; row++)
+        for (int col = 0; col < patch.cols; col++)
+            if (mask.at<Vec3s>(row + offset_row, col + offset_col) == 0) {
+                mask.at<Vec3s>(row + offset_row, col + offset_col) = Vec3s(index_new, row, col);
+                nap.at<Vec3b>(row + offset_row, col + offset_col) = patch.at<Vec3b>(row,col);
+            }
+    for(int i = 0; i < overlap.size(); i++){
+        if (graph.what_segment(i) == Graph<int,int,int>::SINK) {
+            mask.at<Vec3s>(overlap[i].first + offset_row, overlap[i].second + offset_col) = Vec3s(index_new,
+                                                                                                  overlap[i].first,
+                                                                                                  overlap[i].second);
+            nap.at<Vec3s>(overlap[i].first + offset_row, overlap[i].second + offset_col) = patch.at<Vec3b>(overlap[i].first,overlap[i].second);
+        }
+    }
 
     /*
 
