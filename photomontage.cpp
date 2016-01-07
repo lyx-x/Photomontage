@@ -17,24 +17,20 @@
 using namespace std;
 using namespace cv;
 
-struct seam_t {
-
-};
-
 const int infinity = 1<<30;
 
 vector<Mat> photos;
 
-int*value_row;
-int*value_col;
+int* value_row;
+int* value_col;
 Mat nap;
 Mat mask;
 
 int max_row = 600; // number of rows in the output
 int max_col = 1024; // number of columns in the output
-int interior_gap = 32;
+int center_size = 6;
 
-
+// show the mask matrix
 void drawMask(){
     Mat tmp(mask.rows, mask.cols, CV_8U);
     for(int row = 0; row < mask.rows; row++)
@@ -43,27 +39,14 @@ void drawMask(){
     imshow("Mask", tmp);
 }
 
-
+// reset global variables
 void init() {
     for (int row = 0; row < nap.rows; row++)
         for (int col = 0; col < nap.cols; col++) {
             nap.at<Vec3b>(row, col) = Vec3b(0, 0, 0);
             mask.at<Vec3s>(row, col) = Vec3s(-1, 0, 0);
         }
-    mask.at<Vec3s>(256, 256)[0] = (short)0;
 }
-
-inline int to_index(int row, int col) {
-    return row * max_col + col;
-}
-
-inline int to_index(pair<int,int> pixel) {
-    return to_index(pixel.first, pixel.second);
-}
-
-inline pair<int,int> to_pixel(int index) {
-    return make_pair(index / max_col, index % max_col);
-};
 
 inline bool is_overlapped(int row, int col) {
     if (row < 0 || row >= max_row)
@@ -73,16 +56,10 @@ inline bool is_overlapped(int row, int col) {
     return mask.at<Vec3s>(row, col)[0] >= 0;
 }
 
-inline bool is_overlapped(pair<int,int> pixel) {
-    return is_overlapped(pixel.first, pixel.second);
-}
-
 inline bool is_center_photo(int row, int col, int photo_index){
     int r = photos[photo_index].rows;
     int c = photos[photo_index].cols;
-    if (abs(row - r/2) < r/6 && abs(col - c/2) < c/6)
-        return true;
-    return false;
+    return (abs(row - r / 2) < r / center_size && abs(col - c / 2) < c / center_size);
 }
 
 inline bool is_center_photo(pair<int,int> pixel, int photo_index){
@@ -110,9 +87,7 @@ inline bool is_border_mask(int row, int col) {
         return true;
     if (mask.at<Vec3s>(row, col - 1)[0] == -1)
         return true;
-    if (mask.at<Vec3s>(row, col + 1)[0] == -1)
-        return true;
-    return false;
+    return (mask.at<Vec3s>(row, col + 1)[0] == -1);
 }
 
 // Return the norm of nap[row + offset_row,col + offset_col] - photos[index_new][row,col]
@@ -122,14 +97,13 @@ inline int norm(int index_new, int row, int col) {
     int a = int(photos[index_new].at<Vec3b>(row,col)[0]) - int(nap.at<Vec3b>(row + offset_row, col + offset_col)[0]);
     int b = int(photos[index_new].at<Vec3b>(row,col)[1]) - int(nap.at<Vec3b>(row + offset_row, col + offset_col)[1]);
     int c = int(photos[index_new].at<Vec3b>(row,col)[2]) - int(nap.at<Vec3b>(row + offset_row, col + offset_col)[2]);
-    return (int)(sqrt(a * a + b * b + c * c));
+    return int(sqrt(a * a + b * b + c * c));
 }
 
 // return the matching cost between nap[row1,col1] and nap[row2,col2]
 inline int cost(int index_new, int row1, int col1, int row2, int col2) {
     return norm(index_new, row1, col1) + norm(index_new, row2, col2);
 }
-
 
 /*
  * Assemble two photos, the existing image is described with a mask matrix indicating to witch image belongs each pixel,
@@ -161,55 +135,58 @@ void assemble(int index_new) {
                 overlap.push_back(make_pair(row, col));
             }
 
-    vector<seam_t> old_seams;
 
     // TODO add old seams in the graph
 
     // Graph cut
 
-    int num_node =int(overlap.size() + old_seams.size());
-    cout << num_node << endl ;
-    Graph<int,int,int> graph(num_node,num_node * 4); // including the source and the sink
+    int num_node = int(overlap.size()); // the number of seam does not exceed the double of number of pixels
+
+    Graph<int,int,int> graph(num_node * 3, num_node * 4 * 3); // including the source and the sink
     if (num_node != 0)
         graph.add_node(num_node);
 
-    int B = 0;
-    int A = 0;
+    int inside_b = 0;
+    int inside_a = 0;
+
+    int seam_index = num_node;
 
     for (int i = 0; i < overlap.size(); i++) {
+
         // Consider the pixel under it and on its right
+
         int row = overlap[i].first;
         int col = overlap[i].second;
-        // Add adjacent edges
+
+        // Add adjacent edges and seams
+
         if (is_overlapped(row + 1 + offset_row, col + offset_col)) {
             graph.add_edge(i, map_overlap[make_pair(row + 1, col)], cost(index_new, row, col, row + 1, col),
                            cost(index_new, row, col, row + 1, col));
         }
+
         if (is_overlapped(row + offset_row, col + 1 + offset_col)) {
             graph.add_edge(i, map_overlap[make_pair(row, col + 1)], cost(index_new, row, col, row, col + 1),
                            cost(index_new, row, col, row, col + 1));
         }
+
         // Add constraints for source and sink
-        if (is_center_photo(overlap[i],index_new)) {
-            graph.add_tweights(i,0,infinity);
-            B++;
-        } //else if(is_interior_mask(row + offset_row, col + offset_col) && is_border_photo(overlap[i], index_new)) {
-        else {
+
+        if (is_center_photo(overlap[i], index_new)) { // the center of patch must remain
+            inside_b++;
+            graph.add_tweights(i, 0, infinity);
+        } else {
             if (is_border_mask(overlap[i].first + offset_row, overlap[i].second + offset_col)) {
-                B++;
+                inside_b++;
                 graph.add_tweights(i, 0, infinity);
             } else if (is_border_photo(overlap[i],index_new)){
-                A++;
+                inside_a++;
                 graph.add_tweights(i, infinity, 0);
-            }else{
+            } else
                 graph.add_tweights(i, 0, 0);
-            }
         }
     }
-    cout << "B: " << B << " A: " <<A << endl;
-    // Add seam edges
-
-    // TODO
+    cout << "B: " << inside_b << " A: " << inside_a << endl;
 
     // Compute the min-cut
 
@@ -220,21 +197,16 @@ void assemble(int index_new) {
     for (int row = 0; row < patch.rows; row++)
         for (int col = 0; col < patch.cols; col++)
             if (mask.at<Vec3s>(row + offset_row, col + offset_col)[0] == -1) {
-                mask.at<Vec3s>(row + offset_row, col + offset_col) = Vec3s(index_new, row, col);
+                mask.at<Vec3s>(row + offset_row, col + offset_col) = Vec3s(short(index_new), short(row), short(col));
                 nap.at<Vec3b>(row + offset_row, col + offset_col) = patch.at<Vec3b>(row,col);
             }
 
-    int belong = 0;
     for(int i = 0; i < overlap.size(); i++){
         if (graph.what_segment(i) == Graph<int,int,int>::SINK) {
-            belong++;
-            mask.at<Vec3s>(overlap[i].first + offset_row, overlap[i].second + offset_col) = Vec3s(index_new,
-                                                                                                  overlap[i].first,
-                                                                                                  overlap[i].second);
+            mask.at<Vec3s>(overlap[i].first + offset_row, overlap[i].second + offset_col) = Vec3s(short(index_new), short(overlap[i].first), short(overlap[i].second));
             nap.at<Vec3b>(overlap[i].first + offset_row, overlap[i].second + offset_col) = Vec3b(patch.at<Vec3b>(overlap[i].first,overlap[i].second));
         }
     }
-    cout << belong << ";" << endl;
 
     /*
 
@@ -317,6 +289,7 @@ int main() {
 
     files.push_back("samples/bean.jpg");
     files.push_back("samples/bean.jpg");
+    files.push_back("samples/bean.jpg");
 
     // read images
 
@@ -348,8 +321,8 @@ int main() {
     // initialize all images
 
     for (int i = 0; i < photos.size(); i++) {
-        value_row[i] = i * 256;
-        value_col[i] = i * 256;
+        value_row[i] = rand() % (nap.rows - photos[i].rows);
+        value_col[i] = rand() % (nap.cols - photos[i].cols);
         // add position control
         createTrackbar("Row_" + to_string(i + 1), "Control", value_row + i, max_row - photos[i].rows - 1, track);
         createTrackbar("Col_" + to_string(i + 1), "Control", value_col + i, max_col - photos[i].cols - 1, track);
