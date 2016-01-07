@@ -196,7 +196,7 @@ void assemble(int index_new) {
 
     for (int row = 0; row < patch.rows; row++)
         for (int col = 0; col < patch.cols; col++)
-            if (mask.at<Vec3s>(row + offset_row, col + offset_col) == Vec3s(-1,0,0)) {
+            if (mask.at<Vec3s>(row + offset_row, col + offset_col)[0] == -1) {
                 mask.at<Vec3s>(row + offset_row, col + offset_col) = Vec3s(index_new, row, col);
                 nap.at<Vec3b>(row + offset_row, col + offset_col) = patch.at<Vec3b>(row,col);
             }
@@ -279,9 +279,20 @@ void assemble() {
 
 }
 
+void drawMask(){
+    Mat m(mask.rows, mask.cols, CV_8U);
+    for(int row = 0; row < mask.rows; row++){
+        for(int col = 0; col < mask.cols; col++){
+            m.at<uchar>(row,col) = int((mask.at<Vec3s>(row,col)[0] + 1) * 255 / photos.size());
+        }
+    }
+    imshow("Mask",m);
+}
+
 void track(int, void*) {
     assemble();
     imshow("Image", nap);
+    drawMask();
 }
 
 int main() {
@@ -310,6 +321,7 @@ int main() {
 
     namedWindow("Image");
     namedWindow("Control");
+    namedWindow("Mask");
 
     value_row = new int[photos.size()];
     value_col = new int[photos.size()];
