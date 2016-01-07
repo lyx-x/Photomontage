@@ -99,9 +99,11 @@ inline bool at_photo_border(pair<int,int>pixel, int photo_index){
 
 // Return the norm of nap[row + offset_row,col + offset_col] - photos[index_new][row,col]
 inline int norm(int index_new, int row, int col) {
-    int a = (int)photos[index_new].at<Vec3b>(row,col)[0];
-    int b = (int)photos[index_new].at<Vec3b>(row,col)[1];
-    int c = (int)photos[index_new].at<Vec3b>(row,col)[2];
+    int offset_row = value_row[index_new];
+    int offset_col = value_col[index_new];
+    int a = int(photos[index_new].at<Vec3b>(row,col)[0]) - int(nap.at<Vec3b>(row + offset_row, col + offset_col)[0]);
+    int b = int(photos[index_new].at<Vec3b>(row,col)[1]) - int(nap.at<Vec3b>(row + offset_row, col + offset_col)[1]);
+    int c = int(photos[index_new].at<Vec3b>(row,col)[2]) - int(nap.at<Vec3b>(row + offset_row, col + offset_col)[2]);
     return (int)(sqrt(a * a + b * b + c * c));
 }
 
