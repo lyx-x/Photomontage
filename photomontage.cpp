@@ -34,12 +34,25 @@ int max_row = 600; // number of rows in the output
 int max_col = 1024; // number of columns in the output
 int interior_gap = 32;
 
+
+void drawMask(){
+    Mat m(mask.rows, mask.cols, CV_8U);
+    for(int row = 0; row < mask.rows; row++){
+        for(int col = 0; col < mask.cols; col++){
+            m.at<uchar>(row,col) = uchar(int((mask.at<Vec3s>(row,col)[0] + 1) * 255 / photos.size()));
+        }
+    }
+    imshow("Mask",m);
+}
+
+
 void init() {
     for (int row = 0; row < nap.rows; row++)
         for (int col = 0; col < nap.cols; col++) {
             nap.at<Vec3b>(row, col) = Vec3b(0, 0, 0);
             mask.at<Vec3s>(row, col) = Vec3s(-1, 0, 0);
         }
+    mask.at<Vec3s>(256, 256)[0] = (short)0;
 }
 
 inline int to_index(int row, int col) {
@@ -151,9 +164,10 @@ void assemble(int index_new) {
 
     int num_node =int(overlap.size() + old_seams.size());
     cout << num_node << endl ;
+    if (num_node == 0)
+        return;
     Graph<int,int,int> graph(num_node,num_node * 4); // including the source and the sink
-    if (num_node != 0)
-        graph.add_node(num_node);
+    graph.add_node(num_node);
 
     int interior = 0;
     int exterior = 0;
@@ -175,7 +189,7 @@ void assemble(int index_new) {
         if (is_interior_photo(overlap[i],index_new)){
             graph.add_tweights(i,0,infinity);
             interior++;
-        }else if(at_photo_border(overlap[i],index_new)){
+        }else if(is_interior_mask(row + offset_row, col + offset_col) && at_photo_border(overlap[i],index_new)){
             exterior++;
             graph.add_tweights(i,infinity,0);
         }else{
@@ -196,8 +210,8 @@ void assemble(int index_new) {
     for (int row = 0; row < patch.rows; row++)
         for (int col = 0; col < patch.cols; col++)
             if (mask.at<Vec3s>(row + offset_row, col + offset_col)[0] == -1) {
-                mask.at<Vec3s>(row + offset_row, col + offset_col) = Vec3s(index_new, row, col);
-                nap.at<Vec3b>(row + offset_row, col + offset_col) = Vec3b(patch.at<Vec3b>(row,col));
+                //mask.at<Vec3s>(row + offset_row, col + offset_col) = Vec3s(index_new, row, col);
+                nap.at<Vec3b>(row + offset_row, col + offset_col) = patch.at<Vec3b>(row,col);
             }
 
     int belong = 0;
@@ -273,21 +287,9 @@ void assemble() {
         }
 
     // add the other patch
-    for (int i = 1; i < photos.size(); i++) {
+    for (int i = 1; i < photos.size(); i++)
         assemble(i);
-        cout << i <<" assembled!" << endl;
-    }
 
-}
-
-void drawMask(){
-    Mat m(mask.rows, mask.cols, CV_8U);
-    for(int row = 0; row < mask.rows; row++){
-        for(int col = 0; col < mask.cols; col++){
-            m.at<uchar>(row,col) = int((mask.at<Vec3s>(row,col)[0] + 1) * 255 / photos.size());
-        }
-    }
-    imshow("Mask",m);
 }
 
 void track(int, void*) {
@@ -313,6 +315,10 @@ int main() {
         photos.push_back(img);
     }
 
+    namedWindow("Image");
+    namedWindow("Control");
+    namedWindow("Mask");
+
     // prepare a large nap for drawing
 
     nap = Mat(600, 1024, CV_8UC3);
@@ -320,9 +326,7 @@ int main() {
 
     // assemble images one by one
 
-    namedWindow("Image");
-    namedWindow("Control");
-    namedWindow("Mask");
+    init();
 
     value_row = new int[photos.size()];
     value_col = new int[photos.size()];
@@ -340,6 +344,9 @@ int main() {
         createTrackbar("Row_" + to_string(i + 1), "Control", value_row + i, max_row - photos[i].rows - 1, track);
         createTrackbar("Col_" + to_string(i + 1), "Control", value_col + i, max_col - photos[i].cols - 1, track);
     }
+
+    assemble();
+    imshow("Image", nap);
 
     waitKey(0);
 
