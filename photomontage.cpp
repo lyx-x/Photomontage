@@ -21,7 +21,7 @@ struct seam_t {
 
 };
 
-const int infinity = 1<<31;
+const int infinity = 1<<30;
 
 vector<Mat> photos;
 
@@ -32,13 +32,13 @@ Mat mask;
 
 int max_row = 600; // number of rows in the output
 int max_col = 1024; // number of columns in the output
-int interior_gap = 8;
+int interior_gap = 32;
 
 void init() {
     for (int row = 0; row < nap.rows; row++)
         for (int col = 0; col < nap.cols; col++) {
             nap.at<Vec3b>(row, col) = Vec3b(0, 0, 0);
-            mask.at<Vec3s>(row, col) = Vec3s(0, 0, 0);
+            mask.at<Vec3s>(row, col) = Vec3s(-1, 0, 0);
         }
 }
 
@@ -99,7 +99,10 @@ inline bool at_photo_border(pair<int,int>pixel, int photo_index){
 
 // Return the norm of nap[row + offset_row,col + offset_col] - photos[index_new][row,col]
 inline int norm(int index_new, int row, int col) {
-    return 0;
+    int a = (int)photos[index_new].at<Vec3b>(row,col)[0];
+    int b = (int)photos[index_new].at<Vec3b>(row,col)[1];
+    int c = (int)photos[index_new].at<Vec3b>(row,col)[2];
+    return (int)(sqrt(a * a + b * b + c * c));
 }
 
 // return the matching cost between nap[row1,col1] and nap[row2,col2]
@@ -144,31 +147,41 @@ void assemble(int index_new) {
 
     // Graph cut
 
-    Graph<int,int,int> graph(overlap.size() + old_seams.size() + 2,1); // including the source and the sink
-    int source = int(overlap.size() + old_seams.size());
-    int sink = source + 1;
+    int num_node =int(overlap.size() + old_seams.size());
+    cout << num_node << endl ;
+    if (num_node == 0)
+        return;
+    Graph<int,int,int> graph(num_node,num_node * 4); // including the source and the sink
+    graph.add_node(num_node);
 
-
+    int interior = 0;
+    int exterior = 0;
 
     for (int i = 0; i < overlap.size(); i++) {
         // Consider the pixel under it and on its right
         int row = overlap[i].first;
         int col = overlap[i].second;
         // Add adjacent edges
-        if (is_overlapped(row + 1, col))
-            graph.add_edge(i, map_overlap[make_pair(row + 1, col)], cost(index_new, row, col, row + 1, col), cost(index_new, row, col, row + 1, col));
-        if (is_overlapped(row, col + 1))
-            graph.add_edge(i, map_overlap[make_pair(row + 1, col)], cost(index_new, row, col, row, col + 1), cost(index_new, row, col, row, col + 1));
+        if (is_overlapped(row + 1 + offset_row, col + offset_col)) {
+            graph.add_edge(i, map_overlap[make_pair(row + 1, col)], cost(index_new, row, col, row + 1, col),
+                           cost(index_new, row, col, row + 1, col));
+        }
+        if (is_overlapped(row + offset_row, col + 1 + offset_col)) {
+            graph.add_edge(i, map_overlap[make_pair(row, col + 1)], cost(index_new, row, col, row, col + 1),
+                           cost(index_new, row, col, row, col + 1));
+        }
         // Add constraints for source and sink
         if (is_interior_photo(overlap[i],index_new)){
             graph.add_tweights(i,0,infinity);
+            interior++;
         }else if(is_interior_mask(row + offset_row, col + offset_col) && at_photo_border(overlap[i],index_new)){
+            exterior++;
             graph.add_tweights(i,infinity,0);
         }else{
             graph.add_tweights(i,0,0);
         }
     }
-
+    cout << "interior: " << interior << " exterior: " <<exterior << endl;
     // Add seam edges
 
     // TODO
@@ -181,18 +194,22 @@ void assemble(int index_new) {
 
     for (int row = 0; row < patch.rows; row++)
         for (int col = 0; col < patch.cols; col++)
-            if (mask.at<Vec3s>(row + offset_row, col + offset_col) == 0) {
+            if (mask.at<Vec3s>(row + offset_row, col + offset_col) == Vec3s(-1,0,0)) {
                 mask.at<Vec3s>(row + offset_row, col + offset_col) = Vec3s(index_new, row, col);
                 nap.at<Vec3b>(row + offset_row, col + offset_col) = patch.at<Vec3b>(row,col);
             }
+
+    int belong = 0;
     for(int i = 0; i < overlap.size(); i++){
         if (graph.what_segment(i) == Graph<int,int,int>::SINK) {
+            belong++;
             mask.at<Vec3s>(overlap[i].first + offset_row, overlap[i].second + offset_col) = Vec3s(index_new,
                                                                                                   overlap[i].first,
                                                                                                   overlap[i].second);
-            nap.at<Vec3s>(overlap[i].first + offset_row, overlap[i].second + offset_col) = patch.at<Vec3b>(overlap[i].first,overlap[i].second);
+            nap.at<Vec3b>(overlap[i].first + offset_row, overlap[i].second + offset_col) = Vec3b(patch.at<Vec3b>(overlap[i].first,overlap[i].second));
         }
     }
+    cout << belong << ";" << endl;
 
     /*
 
@@ -250,8 +267,8 @@ void assemble() {
     // put the first photo
     for (int row = 0; row < photos[0].rows; row++)
         for (int col = 0; col < photos[0].cols; col++) {
-            nap.at<Vec3b>(row + value_row[0], col + value_col[0]) = photos[0].at<Vec3b>(row, col);
-            mask.at<uchar>(row + value_row[0], col + value_col[0]) = 0;
+            nap.at<Vec3b>(row + value_row[0], col + value_col[0]) = Vec3b(photos[0].at<Vec3b>(row, col));
+            mask.at<Vec3s>(row + value_row[0], col + value_col[0]) = Vec3s(0,row,col);
         }
 
     // add the other patch
@@ -269,28 +286,28 @@ int main() {
 
 
     // read arguments, to be replaced
-
+    cout << infinity << endl;
     vector<string> files;
 
     files.push_back("samples/bean.jpg");
-    files.push_back("samples/floor.jpg");
+    files.push_back("samples/bean.jpg");
 
     // read images
 
     for (auto s: files) {
-        Mat img = imread(s);
+        Mat img = imread(s.c_str());
         photos.push_back(img);
     }
 
     // prepare a large nap for drawing
 
     nap = Mat(600, 1024, CV_8UC3);
-    mask = Mat(600, 1024, CV_8SC3, Scalar_<Vec3s>::all(Vec3s(0, 0, 0)));
+    mask = Mat(600, 1024, CV_8SC3);
 
     // assemble images one by one
 
-    namedWindow("Image", 1);
-    namedWindow("Control", 1);
+    namedWindow("Image");
+    namedWindow("Control");
 
     value_row = new int[photos.size()];
     value_col = new int[photos.size()];
@@ -302,8 +319,8 @@ int main() {
     // initialize all images
 
     for (int i = 0; i < photos.size(); i++) {
-        value_row[i] = 0;
-        value_col[i] = 0;
+        value_row[i] = i * 256;
+        value_col[i] = i * 256;
         // add position control
         createTrackbar("Row_" + to_string(i + 1), "Control", value_row + i, max_row - photos[i].rows - 1, track);
         createTrackbar("Col_" + to_string(i + 1), "Control", value_col + i, max_col - photos[i].cols - 1, track);
