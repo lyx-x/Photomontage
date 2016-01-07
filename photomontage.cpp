@@ -283,7 +283,7 @@ void assemble() {
     for (int row = 0; row < photos[0].rows; row++)
         for (int col = 0; col < photos[0].cols; col++) {
             nap.at<Vec3b>(row + value_row[0], col + value_col[0]) = Vec3b(photos[0].at<Vec3b>(row, col));
-            //mask.at<Vec3s>(row + value_row[0], col + value_col[0]) = Vec3s(0,row,col);
+            mask.at<Vec3s>(row + value_row[0], col + value_col[0]) = Vec3s(0,row,col);
         }
 
     // add the other patch
@@ -322,7 +322,7 @@ int main() {
     // prepare a large nap for drawing
 
     nap = Mat(600, 1024, CV_8UC3);
-    mask = Mat(600, 1024, CV_8SC3);
+    mask = Mat(600, 1024, CV_16SC3);
 
     // assemble images one by one
 
