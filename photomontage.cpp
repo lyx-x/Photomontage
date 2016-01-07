@@ -77,25 +77,16 @@ inline bool is_overlapped(pair<int,int> pixel) {
     return is_overlapped(pixel.first, pixel.second);
 }
 
-inline bool is_interior_photo(int row, int col, int photo_index){
-    return (row >= interior_gap && row + interior_gap < photos[photo_index].rows
-            && col >= interior_gap && col + interior_gap < photos[photo_index].cols);
+inline bool is_center_photo(int row, int col, int photo_index){
+    int r = photos[photo_index].rows;
+    int c = photos[photo_index].cols;
+    if (abs(row - r/2) < r/6 && abs(col - c/2) < c/6)
+        return true;
+    return false;
 }
 
-inline bool is_interior_photo(pair<int,int> pixel, int photo_index){
-    return is_interior_photo(pixel.first, pixel.second, photo_index);
-}
-
-inline bool is_interior_mask(int row, int col){
-    if (row - interior_gap < 0 || row + interior_gap >= max_row)
-        return false;
-    if (col - interior_gap < 0 || col + interior_gap >= max_col)
-        return false;
-    return (mask.at<Vec3s>(row, col)[0] >= 0 && mask.at<Vec3s>(row - interior_gap, col - interior_gap)[0] >= 0 && mask.at<Vec3s>(row + interior_gap, col + interior_gap)[0] >= 0);
-}
-
-inline bool is_interior_mask(pair<int,int> pixel){
-    return is_interior_mask(pixel.first, pixel.second);
+inline bool is_center_photo(pair<int,int> pixel, int photo_index){
+    return is_center_photo(pixel.first, pixel.second, photo_index);
 }
 
 inline bool is_border_photo(int row, int col, int photo_index){
@@ -182,8 +173,8 @@ void assemble(int index_new) {
     if (num_node != 0)
         graph.add_node(num_node);
 
-    int interior = 0;
-    int exterior = 0;
+    int B = 0;
+    int A = 0;
 
     for (int i = 0; i < overlap.size(); i++) {
         // Consider the pixel under it and on its right
@@ -199,18 +190,23 @@ void assemble(int index_new) {
                            cost(index_new, row, col, row, col + 1));
         }
         // Add constraints for source and sink
-        if (is_interior_photo(overlap[i],index_new)) {
+        if (is_center_photo(overlap[i],index_new)) {
             graph.add_tweights(i,0,infinity);
-            interior++;
+            B++;
         } //else if(is_interior_mask(row + offset_row, col + offset_col) && is_border_photo(overlap[i], index_new)) {
-        else if (!is_border_mask(row + offset_row, col + offset_col) && is_border_photo(overlap[i], index_new)) {
-            exterior++;
-            graph.add_tweights(i,infinity,0);
-        } else {
-            graph.add_tweights(i,0,0);
+        else {
+            if (is_border_mask(overlap[i].first + offset_row, overlap[i].second + offset_col)) {
+                B++;
+                graph.add_tweights(i, 0, infinity);
+            } else if (is_border_photo(overlap[i],index_new)){
+                A++;
+                graph.add_tweights(i, infinity, 0);
+            }else{
+                graph.add_tweights(i, 0, 0);
+            }
         }
     }
-    cout << "interior: " << interior << " exterior: " <<exterior << endl;
+    cout << "B: " << B << " A: " <<A << endl;
     // Add seam edges
 
     // TODO
