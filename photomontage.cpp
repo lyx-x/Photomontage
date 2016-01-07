@@ -151,10 +151,9 @@ void assemble(int index_new) {
 
     int num_node =int(overlap.size() + old_seams.size());
     cout << num_node << endl ;
-    if (num_node == 0)
-        return;
     Graph<int,int,int> graph(num_node,num_node * 4); // including the source and the sink
-    graph.add_node(num_node);
+    if (num_node != 0)
+        graph.add_node(num_node);
 
     int interior = 0;
     int exterior = 0;
@@ -176,7 +175,7 @@ void assemble(int index_new) {
         if (is_interior_photo(overlap[i],index_new)){
             graph.add_tweights(i,0,infinity);
             interior++;
-        }else if(is_interior_mask(row + offset_row, col + offset_col) && at_photo_border(overlap[i],index_new)){
+        }else if(at_photo_border(overlap[i],index_new)){
             exterior++;
             graph.add_tweights(i,infinity,0);
         }else{
@@ -198,7 +197,7 @@ void assemble(int index_new) {
         for (int col = 0; col < patch.cols; col++)
             if (mask.at<Vec3s>(row + offset_row, col + offset_col)[0] == -1) {
                 mask.at<Vec3s>(row + offset_row, col + offset_col) = Vec3s(index_new, row, col);
-                nap.at<Vec3b>(row + offset_row, col + offset_col) = patch.at<Vec3b>(row,col);
+                nap.at<Vec3b>(row + offset_row, col + offset_col) = Vec3b(patch.at<Vec3b>(row,col));
             }
 
     int belong = 0;
@@ -270,12 +269,14 @@ void assemble() {
     for (int row = 0; row < photos[0].rows; row++)
         for (int col = 0; col < photos[0].cols; col++) {
             nap.at<Vec3b>(row + value_row[0], col + value_col[0]) = Vec3b(photos[0].at<Vec3b>(row, col));
-            mask.at<Vec3s>(row + value_row[0], col + value_col[0]) = Vec3s(0,row,col);
+            //mask.at<Vec3s>(row + value_row[0], col + value_col[0]) = Vec3s(0,row,col);
         }
 
     // add the other patch
-    for (int i = 1; i < photos.size(); i++)
+    for (int i = 1; i < photos.size(); i++) {
         assemble(i);
+        cout << i <<" assembled!" << endl;
+    }
 
 }
 
