@@ -90,19 +90,21 @@ inline bool is_border_mask(int row, int col) {
     return (mask.at<Vec3s>(row, col + 1)[0] == -1);
 }
 
-// Return the norm of nap[row + offset_row,col + offset_col] - photos[index_new][row,col]
-inline int norm(int index_new, int row, int col) {
-    int offset_row = value_row[index_new];
-    int offset_col = value_col[index_new];
-    int a = int(photos[index_new].at<Vec3b>(row,col)[0]) - int(nap.at<Vec3b>(row + offset_row, col + offset_col)[0]);
-    int b = int(photos[index_new].at<Vec3b>(row,col)[1]) - int(nap.at<Vec3b>(row + offset_row, col + offset_col)[1]);
-    int c = int(photos[index_new].at<Vec3b>(row,col)[2]) - int(nap.at<Vec3b>(row + offset_row, col + offset_col)[2]);
+// Return the norm of photos[a][row,col] - photos[b][row,col]
+inline int norm(int index_a, int index_b, int row, int col) {
+    int offset_row_a = value_row[index_a];
+    int offset_col_a = value_col[index_a];
+    int offset_row_b = value_row[index_b];
+    int offset_col_b = value_col[index_b];
+    int a = int(photos[index_a].at<Vec3b>(row - offset_row_a,col - offset_col_a)[0]) - int(photos[index_b].at<Vec3b>(row - offset_row_b, col - offset_col_b)[0]);
+    int b = int(photos[index_a].at<Vec3b>(row - offset_row_a,col - offset_col_a)[1]) - int(photos[index_b].at<Vec3b>(row - offset_row_b, col - offset_col_b)[1]);
+    int c = int(photos[index_a].at<Vec3b>(row - offset_row_a,col - offset_col_a)[2]) - int(photos[index_b].at<Vec3b>(row - offset_row_b, col - offset_col_b)[2]);
     return int(sqrt(a * a + b * b + c * c));
 }
 
 // return the matching cost between nap[row1,col1] and nap[row2,col2]
-inline int cost(int index_new, int row1, int col1, int row2, int col2) {
-    return norm(index_new, row1, col1) + norm(index_new, row2, col2);
+inline int cost(int index_a, int index_b, int row1, int col1, int row2, int col2) {
+    return norm(index_a, index_b, row1, col1) + norm(index_a, index_b, row2, col2);
 }
 
 /*
@@ -158,16 +160,41 @@ void assemble(int index_new) {
         int row = overlap[i].first;
         int col = overlap[i].second;
 
+        int row_mask = row + offset_row;
+        int col_mask = col + offset_col;
+
         // Add adjacent edges and seams
 
-        if (is_overlapped(row + 1 + offset_row, col + offset_col)) {
-            graph.add_edge(i, map_overlap[make_pair(row + 1, col)], cost(index_new, row, col, row + 1, col),
-                           cost(index_new, row, col, row + 1, col));
+        if (is_overlapped(row_mask + 1, col_mask)) {
+            if (mask.at<Vec3s>(row_mask + 1, col_mask)[0] != mask.at<Vec3s>(row_mask, col_mask)[0]){
+                graph.add_node(1);
+                graph.add_tweights(seam_index,0,
+                                   cost(mask.at<Vec3s>(row_mask+1, col_mask)[0],mask.at<Vec3s>(row_mask, col_mask)[0],row_mask,col_mask,row_mask + 1,col_mask));
+                graph.add_edge(i,seam_index,cost(mask.at<Vec3s>(row_mask, col_mask)[0],index_new, row_mask,col_mask,row_mask + 1,col_mask),
+                               cost(mask.at<Vec3s>(row_mask, col_mask)[0],index_new, row_mask,col_mask,row_mask + 1,col_mask));
+                graph.add_edge(seam_index,map_overlap[make_pair(row + 1, col)], cost(mask.at<Vec3s>(row_mask + 1, col_mask)[0],index_new, row_mask,col_mask,row_mask + 1,col_mask),
+                               cost(mask.at<Vec3s>(row_mask + 1, col_mask)[0],index_new, row_mask,col_mask,row_mask + 1,col_mask));
+                seam_index++;
+            }else {
+                graph.add_edge(i, map_overlap[make_pair(row + 1, col)], cost(index_new, mask.at<Vec3s>(row_mask + 1, col_mask)[0], row_mask,col_mask,row_mask + 1,col_mask),
+                               cost(index_new, mask.at<Vec3s>(row_mask + 1, col_mask)[0], row_mask,col_mask,row_mask + 1,col_mask));
+            }
         }
 
-        if (is_overlapped(row + offset_row, col + 1 + offset_col)) {
-            graph.add_edge(i, map_overlap[make_pair(row, col + 1)], cost(index_new, row, col, row, col + 1),
-                           cost(index_new, row, col, row, col + 1));
+        if (is_overlapped(row_mask, col_mask + 1)) {
+            if (mask.at<Vec3s>(row_mask, col_mask + 1)[0] != mask.at<Vec3s>(row_mask, col_mask)[0]){
+                graph.add_node(1);
+                graph.add_tweights(seam_index,0,
+                                   cost(mask.at<Vec3s>(row_mask, col_mask + 1)[0],mask.at<Vec3s>(row_mask, col_mask)[0],row_mask,col_mask,row_mask,col_mask + 1));
+                graph.add_edge(i,seam_index,cost(mask.at<Vec3s>(row_mask, col_mask)[0],index_new, row_mask,col_mask,row_mask,col_mask + 1),
+                               cost(mask.at<Vec3s>(row_mask, col_mask)[0],index_new, row_mask,col_mask,row_mask,col_mask + 1));
+                graph.add_edge(seam_index,map_overlap[make_pair(row, col + 1)], cost(mask.at<Vec3s>(row_mask, col_mask + 1)[0],index_new, row_mask,col_mask,row_mask,col_mask + 1),
+                               cost(mask.at<Vec3s>(row_mask, col_mask + 1)[0],index_new, row_mask,col_mask,row_mask,col_mask + 1));
+                seam_index++;
+            }else {
+                graph.add_edge(i, map_overlap[make_pair(row, col + 1)], cost(index_new, mask.at<Vec3s>(row_mask, col_mask + 1)[0], row_mask,col_mask,row_mask,col_mask + 1),
+                               cost(index_new, mask.at<Vec3s>(row_mask, col_mask + 1)[0], row_mask,col_mask,row_mask,col_mask + 1));
+            }
         }
 
         // Add constraints for source and sink
