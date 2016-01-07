@@ -36,13 +36,11 @@ int interior_gap = 32;
 
 
 void drawMask(){
-    Mat m(mask.rows, mask.cols, CV_8U);
-    for(int row = 0; row < mask.rows; row++){
-        for(int col = 0; col < mask.cols; col++){
-            m.at<uchar>(row,col) = uchar(int((mask.at<Vec3s>(row,col)[0] + 1) * 255 / photos.size()));
-        }
-    }
-    imshow("Mask",m);
+    Mat tmp(mask.rows, mask.cols, CV_8U);
+    for(int row = 0; row < mask.rows; row++)
+        for(int col = 0; col < mask.cols; col++)
+            tmp.at<uchar>(row, col) = uchar((mask.at<Vec3s>(row, col)[0] + 1) * 255 / photos.size());
+    imshow("Mask", tmp);
 }
 
 
@@ -100,14 +98,30 @@ inline bool is_interior_mask(pair<int,int> pixel){
     return is_interior_mask(pixel.first, pixel.second);
 }
 
-inline bool at_photo_border(int row, int col, int photo_index){
+inline bool is_border_photo(int row, int col, int photo_index){
    if (row == 0 || row == photos[photo_index].rows - 1)
        return true;
    return (col == 0 || col == photos[photo_index].cols - 1);
 }
 
-inline bool at_photo_border(pair<int,int>pixel, int photo_index){
-    return at_photo_border(pixel.first, pixel.second, photo_index);
+inline bool is_border_photo(pair<int, int> pixel, int photo_index){
+    return is_border_photo(pixel.first, pixel.second, photo_index);
+}
+
+inline bool is_border_mask(int row, int col) {
+    if (row == 0 || row == mask.rows - 1)
+        return true;
+    if (col == 0 || col == mask.cols - 1)
+        return true;
+    if (mask.at<Vec3s>(row - 1, col)[0] == -1)
+        return true;
+    if (mask.at<Vec3s>(row + 1, col)[0] == -1)
+        return true;
+    if (mask.at<Vec3s>(row, col - 1)[0] == -1)
+        return true;
+    if (mask.at<Vec3s>(row, col + 1)[0] == -1)
+        return true;
+    return false;
 }
 
 // Return the norm of nap[row + offset_row,col + offset_col] - photos[index_new][row,col]
@@ -186,13 +200,14 @@ void assemble(int index_new) {
                            cost(index_new, row, col, row, col + 1));
         }
         // Add constraints for source and sink
-        if (is_interior_photo(overlap[i],index_new)){
+        if (is_interior_photo(overlap[i],index_new)) {
             graph.add_tweights(i,0,infinity);
             interior++;
-        }else if(is_interior_mask(row + offset_row, col + offset_col) && at_photo_border(overlap[i],index_new)){
+        } //else if(is_interior_mask(row + offset_row, col + offset_col) && is_border_photo(overlap[i], index_new)) {
+        else if (!is_border_mask(row + offset_row, col + offset_col) && is_border_photo(overlap[i], index_new)) {
             exterior++;
             graph.add_tweights(i,infinity,0);
-        }else{
+        } else {
             graph.add_tweights(i,0,0);
         }
     }
@@ -290,12 +305,12 @@ void assemble() {
     for (int i = 1; i < photos.size(); i++)
         assemble(i);
 
+    imshow("Image", nap);
+    drawMask();
 }
 
 void track(int, void*) {
     assemble();
-    imshow("Image", nap);
-    drawMask();
 }
 
 int main() {
@@ -346,7 +361,6 @@ int main() {
     }
 
     assemble();
-    imshow("Image", nap);
 
     waitKey(0);
 
