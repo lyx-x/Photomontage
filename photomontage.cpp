@@ -280,6 +280,9 @@ void track(int, void*) {
     assemble();
 }
 
+string file = "samples/strawberries.jpg";
+int number = 10;
+
 int main() {
 
 
@@ -287,9 +290,12 @@ int main() {
     cout << infinity << endl;
     vector<string> files;
 
-    files.push_back("samples/bean.jpg");
-    files.push_back("samples/bean.jpg");
-    files.push_back("samples/bean.jpg");
+    for (int i = 0; i < number; i++)
+        files.push_back(file);
+
+    //files.push_back("samples/bean.jpg");
+    //files.push_back("samples/bean.jpg");
+    //files.push_back("samples/bean.jpg");
 
     // read images
 

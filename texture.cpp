@@ -57,7 +57,7 @@ void generate(Mat& input, Mat& output, int iteration, float scaling_factor, floa
 
     // loop in order to cover the whole image
 
-    while(iteration--) {
+    while(true) {
 
         // get a small piece of input file (eg. 32 * 32 or size * size) according to the patch_mode
 
@@ -66,6 +66,13 @@ void generate(Mat& input, Mat& output, int iteration, float scaling_factor, floa
         // find the minimum cut inside the overlay area (eg. 8 or overlap in width)
 
         // generate new output matrix with the cut value
+
+        // exit the process on demand
+
+        char control;
+        cin >> control;
+        if (control == 'q')
+            break;
 
     }
 
