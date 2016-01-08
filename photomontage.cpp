@@ -11,6 +11,7 @@
 #include <opencv2/highgui/highgui.hpp>
 
 #include "maxflow/graph.h"
+#include "Montage.h"
 
 //#include "graph.h"
 
@@ -30,6 +31,7 @@ int max_row = 600; // number of rows in the output
 int max_col = 1024; // number of columns in the output
 int center_size = 6;
 
+Montage montage(600,1024);
 // show the mask matrix
 void drawMask(){
     Mat tmp(mask.rows, mask.cols, CV_8U);
@@ -136,9 +138,6 @@ void assemble(int index_new) {
                 map_overlap[make_pair(row, col)] = int(overlap.size()); // store the index
                 overlap.push_back(make_pair(row, col));
             }
-
-
-    // TODO add old seams in the graph
 
     // Graph cut
 
@@ -307,18 +306,39 @@ void track(int, void*) {
     assemble();
 }
 
-string file = "samples/strawberries.jpg";
-int number = 10;
+string file = "samples/bean.jpg";
+int number = 3;
+
+void track_montage(int, void*){
+    montage.reset();
+    for(int i = 0; i < number; i++){
+        montage.assemble(i,value_row[i],value_col[i]);
+    }
+    montage.show();
+}
 
 int main() {
 
+    Mat img = imread(file);
 
-    // read arguments, to be replaced
-    cout << infinity << endl;
-    vector<string> files;
+    for (int i = 0; i < number; i++) {
+        montage.add_photo(img);
+    }
 
-    for (int i = 0; i < number; i++)
-        files.push_back(file);
+    value_row = new int[number];
+    value_col = new int[number];
+
+    namedWindow("Control");
+
+    for (int i = 0; i < number; i++) {
+        value_row[i] = rand() % (max_row - img.rows);
+        value_col[i] = rand() % (max_col - img.cols);
+        // add position control
+        createTrackbar("Row_" + to_string(i + 1), "Control", value_row + i, max_row - img.rows - 1, track_montage);
+        createTrackbar("Col_" + to_string(i + 1), "Control", value_col + i, max_col - img.cols - 1, track_montage);
+    }
+
+    waitKey(0);
 
     //files.push_back("samples/bean.jpg");
     //files.push_back("samples/bean.jpg");
@@ -326,7 +346,7 @@ int main() {
 
     // read images
 
-    for (auto s: files) {
+    /*for (auto s: files) {
         Mat img = imread(s.c_str());
         photos.push_back(img);
     }
@@ -367,6 +387,9 @@ int main() {
 
     delete[] value_row;
     delete[] value_col;
+    */
 
+    delete[] value_row;
+    delete[] value_col;
     return EXIT_SUCCESS;
 }
