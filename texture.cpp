@@ -25,12 +25,16 @@
  */
 
 #include <iostream>
-#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include "Montage.h"
 
 using namespace std;
 using namespace cv;
 
 enum Patch_Mode {Random, Entire, Sub_Match};
+
+int max_row = 300;
+int max_col = 500;
 
 /**
  * Texture generation function: the input and output matrix must be allocated with a valid dimension before calling
@@ -57,23 +61,27 @@ void generate(Mat& input, Mat& output, int iteration, float scaling_factor, floa
 
     // loop in order to cover the whole image
 
-    while(true) {
+    Montage montage(max_row, max_col);
+    montage.add_photo(input);
+    montage.reset();
+    montage.assemble(0,0,0);
+    montage.show();
+    waitKey(0);
 
-        // get a small piece of input file (eg. 32 * 32 or size * size) according to the patch_mode
-
-        // put the piece on a temporary matrix and overlay it on the previous output matrix (with rotation and scaling)
-
-        // find the minimum cut inside the overlay area (eg. 8 or overlap in width)
-
-        // generate new output matrix with the cut value
-
-        // exit the process on demand
-
-        char control;
-        cin >> control;
-        if (control == 'q')
-            break;
-
+    for(int i = 1; i < iteration; i++){
+        int row = rand() % (max_row - input.rows);
+        int col = rand() % (max_col - input.cols);
+        float distance = float(row + col * dir)/sqrt(1.0 + dir * dir);
+        cout << distance << endl;
+        float resize_factor = scaling_factor / (scaling_factor + distance);
+        cout << resize_factor << endl;
+        Size size(int(input.rows * resize_factor), int(input.cols * resize_factor));
+        Mat temp;
+        resize(input,temp,size);
+        montage.add_photo(temp);
+        montage.assemble(i,row,col);
+        montage.show();
+        waitKey(0);
     }
 
 }
@@ -85,7 +93,7 @@ int main(int argc, char** argv) {
 
     // reading the parameters
 
-    string input_file;
+    /*string input_file;
     string output_file;
     int height = 0;
     int width = 0;
@@ -142,7 +150,11 @@ int main(int argc, char** argv) {
     // show/save the result
 
     imshow(output_file, output);
-    waitKey(0);
+    waitKey(0);*/
+    string inputfile = "samples/bean.jpg";
+    Mat input = imread(inputfile);
+    Mat output(input.rows, input.cols, CV_8UC3);
+    generate(input,output,15,256,1,Patch_Mode(Random));
 
     return EXIT_SUCCESS;
 }
