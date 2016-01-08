@@ -2,7 +2,7 @@
 // Created by czx on 08/01/16.
 //
 
-#include "Montage.h"
+#include "montage.h"
 #include <map>
 #include "maxflow/graph.h"
 
@@ -198,5 +198,5 @@ void Montage::show() {
         for(int col = 0; col < mask.cols; col++)
             tmp.at<uchar>(row, col) = uchar((mask.at<Vec3s>(row, col)[0] + 1) * 255 / photos.size());
     imshow("Mask", tmp);
-    imshow("Image",nap);
+    imshow("Image", nap);
 }

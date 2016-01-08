@@ -38,4 +38,4 @@ public:
 };
 
 
-#endif //PHOTOMONTAGE_MONTAGE_H
+#endif //MONTAGE_H

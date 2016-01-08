@@ -26,7 +26,7 @@
 
 #include <iostream>
 #include <opencv2/imgproc/imgproc.hpp>
-#include "Montage.h"
+#include "montage.h"
 
 using namespace std;
 using namespace cv;

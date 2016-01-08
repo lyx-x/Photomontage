@@ -11,7 +11,7 @@
 #include <opencv2/highgui/highgui.hpp>
 
 #include "maxflow/graph.h"
-#include "Montage.h"
+#include "montage.h"
 
 //#include "graph.h"
 
