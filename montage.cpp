@@ -206,10 +206,14 @@ void Montage::show() {
 }
 
 void Montage::save(string img_name, string mask_name) {
-    imwrite(img_name,nap);
+    Rect rect(max_col * 0.12, max_row * 0.12 , max_col * 0.85, max_row * 0.85);
+    Mat output_nap = nap(rect);
+    imwrite(img_name,output_nap);
+
     Mat tmp(mask.rows, mask.cols, CV_8U);
     for(int row = 0; row < mask.rows; row++)
         for(int col = 0; col < mask.cols; col++)
             tmp.at<uchar>(row, col) = uchar((mask.at<Vec3s>(row, col)[0] + 1) * 255 / photos.size());
-    imwrite(mask_name,tmp);
+    Mat output_mask = tmp(rect);
+    imwrite(mask_name,output_mask);
 }

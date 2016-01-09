@@ -60,14 +60,14 @@ void generate(Mat& input, Mat& output, int iteration, float scaling_factor, floa
     montage.add_photo(input);
     montage.reset();
     montage.assemble(0,0,0);
-    montage.show();
-    waitKey(0);
 
-    char key;
     int count  = 1;
     while(iteration--){
         int row = rand() % (max_row);
         int col = rand() % (max_col);
+        int rotation = rand() % 180;
+        //int rotation = 0;
+
         float distance = float(row + col * dir)/sqrt(1.0 + dir * dir);
         float resize_factor = scaling_factor / (scaling_factor + distance);
         if (scaling_factor == 0)
@@ -78,7 +78,7 @@ void generate(Mat& input, Mat& output, int iteration, float scaling_factor, floa
         resize(input,temp,size);
 
         cv::Point2f pc(temp.cols/2., temp.rows/2.);
-        cv::Mat r = cv::getRotationMatrix2D(pc, -45, 1.0);
+        cv::Mat r = cv::getRotationMatrix2D(pc, rotation, 1.0);
         cv::warpAffine(temp, temp, r, temp.size());
 
         montage.add_photo(temp);
@@ -89,6 +89,7 @@ void generate(Mat& input, Mat& output, int iteration, float scaling_factor, floa
           //  break;
     }
     montage.show();
+    montage.save("img_bean.jpg","mask_bean.jpg");
     waitKey(0);
 }
 
@@ -162,7 +163,7 @@ int main(int argc, char** argv) {
     if (input.rows >= 500)
         resize(input,input,Size(input.rows/10, input.cols/10));
     Mat output(input.rows, input.cols, CV_8UC3);
-    generate(input,output,70,0,1,Patch_Mode(Random));
+    generate(input,output,200,0,1,Patch_Mode(Random));
 
     return EXIT_SUCCESS;
 }
