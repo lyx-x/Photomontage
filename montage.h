@@ -35,6 +35,7 @@ public:
     void assemble(int index, int row, int col);
     void reset();
     void show();
+    void save(string img_name, string mask_name);
 };
 
 

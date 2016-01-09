@@ -8,7 +8,7 @@
 
 #include <iostream>
 #include <map>
-#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 #include "maxflow/graph.h"
 #include "montage.h"
@@ -306,7 +306,7 @@ void track(int, void*) {
     assemble();
 }
 
-string file = "samples/bean.jpg";
+string file = "samples/floor.jpg";
 int number = 3;
 
 void track_montage(int, void*){
@@ -315,11 +315,16 @@ void track_montage(int, void*){
         montage.assemble(i,value_row[i],value_col[i]);
     }
     montage.show();
+    montage.save("image" + to_string(value_row[0])+".jpg","mask" + to_string(value_row[0])+".jpg");
 }
 
 int main() {
 
     Mat img = imread(file);
+    if (img.rows > 500)
+        resize(img,img,Size(img.cols/5, img.rows/5));
+    imshow("img",img);
+    waitKey(0);
 
     for (int i = 0; i < number; i++) {
         montage.add_photo(img);

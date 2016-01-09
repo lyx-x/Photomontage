@@ -80,6 +80,10 @@ void Montage::add_photo(Mat photo) {
 
 void Montage::assemble(int index, int offset_row, int offset_col) {
     // the overlapped part of nap and photos[index_new]
+    if (photos[index].rows + offset_row >= max_row || photos[index].cols + offset_col >= max_col){
+        Rect myROI(0, 0, min(max_col - offset_col, photos[index].cols), min(max_row - offset_row, photos[index].rows));
+        photos[index] = photos[index](myROI);
+    }
 
     Mat patch = photos[index];
     while(offset.size() <= index)
@@ -199,4 +203,13 @@ void Montage::show() {
             tmp.at<uchar>(row, col) = uchar((mask.at<Vec3s>(row, col)[0] + 1) * 255 / photos.size());
     imshow("Mask", tmp);
     imshow("Image", nap);
+}
+
+void Montage::save(string img_name, string mask_name) {
+    imwrite(img_name,nap);
+    Mat tmp(mask.rows, mask.cols, CV_8U);
+    for(int row = 0; row < mask.rows; row++)
+        for(int col = 0; col < mask.cols; col++)
+            tmp.at<uchar>(row, col) = uchar((mask.at<Vec3s>(row, col)[0] + 1) * 255 / photos.size());
+    imwrite(mask_name,tmp);
 }

@@ -33,7 +33,7 @@ using namespace cv;
 
 enum Patch_Mode {Random, Entire, Sub_Match};
 
-int max_row = 300;
+int max_row = 500;
 int max_col = 500;
 
 /**
@@ -48,12 +48,7 @@ void generate(Mat& input, Mat& output, int iteration, float scaling_factor, floa
     int sample_height = input.rows;
     int sample_width = input.cols;
 
-    int overlap_height = sample_height / 4;
-    int overlap_width = sample_width / 4;
-
     // write directly on the output
-
-    Mat coverage(height, width, CV_8UC1);
 
     for (int row = 0; row < sample_height; row++)
         for (int col = 0; col < sample_width; col++)
@@ -68,22 +63,33 @@ void generate(Mat& input, Mat& output, int iteration, float scaling_factor, floa
     montage.show();
     waitKey(0);
 
-    for(int i = 1; i < iteration; i++){
-        int row = rand() % (max_row - input.rows);
-        int col = rand() % (max_col - input.cols);
+    char key;
+    int count  = 1;
+    while(iteration--){
+        int row = rand() % (max_row);
+        int col = rand() % (max_col);
         float distance = float(row + col * dir)/sqrt(1.0 + dir * dir);
-        cout << distance << endl;
         float resize_factor = scaling_factor / (scaling_factor + distance);
-        cout << resize_factor << endl;
-        Size size(int(input.rows * resize_factor), int(input.cols * resize_factor));
+        if (scaling_factor == 0)
+            resize_factor = 1;
+
+        Size size(int(input.cols * resize_factor), int(input.rows * resize_factor));
         Mat temp;
         resize(input,temp,size);
-        montage.add_photo(temp);
-        montage.assemble(i,row,col);
-        montage.show();
-        waitKey(0);
-    }
 
+        cv::Point2f pc(temp.cols/2., temp.rows/2.);
+        cv::Mat r = cv::getRotationMatrix2D(pc, -45, 1.0);
+        cv::warpAffine(temp, temp, r, temp.size());
+
+        montage.add_photo(temp);
+        montage.assemble(count++,row,col);
+        //waitKey();
+        //cin >> key;
+        //if (key == 'q')
+          //  break;
+    }
+    montage.show();
+    waitKey(0);
 }
 
 /*
@@ -153,8 +159,10 @@ int main(int argc, char** argv) {
     waitKey(0);*/
     string inputfile = "samples/bean.jpg";
     Mat input = imread(inputfile);
+    if (input.rows >= 500)
+        resize(input,input,Size(input.rows/10, input.cols/10));
     Mat output(input.rows, input.cols, CV_8UC3);
-    generate(input,output,15,256,1,Patch_Mode(Random));
+    generate(input,output,70,0,1,Patch_Mode(Random));
 
     return EXIT_SUCCESS;
 }
