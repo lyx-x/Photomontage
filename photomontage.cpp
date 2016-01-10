@@ -27,8 +27,8 @@ int* value_col;
 Mat nap;
 Mat mask;
 
-int max_row = 600; // number of rows in the output
-int max_col = 1024; // number of columns in the output
+int height = 600; // number of rows in the output
+int width = 1024; // number of columns in the output
 int center_size = 6;
 
 Montage montage(600,1024);
@@ -51,9 +51,9 @@ void init() {
 }
 
 inline bool is_overlapped(int row, int col) {
-    if (row < 0 || row >= max_row)
+    if (row < 0 || row >= height)
         return false;
-    if (col < 0 || col >= max_col)
+    if (col < 0 || col >= width)
         return false;
     return mask.at<Vec3s>(row, col)[0] >= 0;
 }
@@ -336,11 +336,11 @@ int main() {
     namedWindow("Control");
 
     for (int i = 0; i < number; i++) {
-        value_row[i] = rand() % (max_row - img.rows);
-        value_col[i] = rand() % (max_col - img.cols);
+        value_row[i] = rand() % (height - img.rows);
+        value_col[i] = rand() % (width - img.cols);
         // add position control
-        createTrackbar("Row_" + to_string(i + 1), "Control", value_row + i, max_row - img.rows - 1, track_montage);
-        createTrackbar("Col_" + to_string(i + 1), "Control", value_col + i, max_col - img.cols - 1, track_montage);
+        createTrackbar("Row_" + to_string(i + 1), "Control", value_row + i, height - img.rows - 1, track_montage);
+        createTrackbar("Col_" + to_string(i + 1), "Control", value_col + i, width - img.cols - 1, track_montage);
     }
 
     waitKey(0);
@@ -382,8 +382,8 @@ int main() {
         value_row[i] = rand() % (nap.rows - photos[i].rows);
         value_col[i] = rand() % (nap.cols - photos[i].cols);
         // add position control
-        createTrackbar("Row_" + to_string(i + 1), "Control", value_row + i, max_row - photos[i].rows - 1, track);
-        createTrackbar("Col_" + to_string(i + 1), "Control", value_col + i, max_col - photos[i].cols - 1, track);
+        createTrackbar("Row_" + to_string(i + 1), "Control", value_row + i, height - photos[i].rows - 1, track);
+        createTrackbar("Col_" + to_string(i + 1), "Control", value_col + i, width - photos[i].cols - 1, track);
     }
 
     assemble();

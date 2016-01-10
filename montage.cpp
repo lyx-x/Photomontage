@@ -15,7 +15,7 @@ Montage::Montage(int height, int width) {
     mask = Mat(max_row, max_col, CV_16SC3);
 }
 
-inline bool Montage::is_overlapped(int row, int col) {
+inline bool Montage::is_overlapped(int row, int col) const {
     if (row < 0 || row >= max_row)
         return false;
     if (col < 0 || col >= max_col)
@@ -23,27 +23,27 @@ inline bool Montage::is_overlapped(int row, int col) {
     return mask.at<Vec3s>(row, col)[0] >= 0;
 }
 
-inline bool Montage::is_center_photo(int row, int col, int photo_index){
+inline bool Montage::is_center_photo(int row, int col, int photo_index) const {
     int r = photos[photo_index].rows;
     int c = photos[photo_index].cols;
     return (abs(row - r / 2) < r / center_size && abs(col - c / 2) < c / center_size);
 }
 
-inline bool Montage::is_center_photo(pair<int,int> pixel, int photo_index){
+inline bool Montage::is_center_photo(pair<int,int> pixel, int photo_index) const {
     return is_center_photo(pixel.first, pixel.second, photo_index);
 }
 
-inline bool Montage::is_border_photo(int row, int col, int photo_index){
+inline bool Montage::is_border_photo(int row, int col, int photo_index) const {
     if (row == 0 || row == photos[photo_index].rows - 1)
         return true;
     return (col == 0 || col == photos[photo_index].cols - 1);
 }
 
-inline bool Montage::is_border_photo(pair<int, int> pixel, int photo_index){
+inline bool Montage::is_border_photo(pair<int, int> pixel, int photo_index) const {
     return is_border_photo(pixel.first, pixel.second, photo_index);
 }
 
-inline bool Montage::is_border_mask(int row, int col) {
+inline bool Montage::is_border_mask(int row, int col) const {
     if (row == 0 || row == mask.rows - 1)
         return true;
     if (col == 0 || col == mask.cols - 1)
@@ -58,7 +58,7 @@ inline bool Montage::is_border_mask(int row, int col) {
 }
 
 // Return the norm of photos[a][row,col] - photos[b][row,col]
-inline int Montage::norm(int index_a, int index_b, int row, int col) {
+inline int Montage::norm(int index_a, int index_b, int row, int col) const {
     int offset_row_a = offset[index_a].first;
     int offset_col_a = offset[index_a].second;
     int offset_row_b = offset[index_b].first;
@@ -70,7 +70,7 @@ inline int Montage::norm(int index_a, int index_b, int row, int col) {
 }
 
 // return the matching cost between nap[row1,col1] and nap[row2,col2]
-inline int Montage::cost(int index_a, int index_b, int row1, int col1, int row2, int col2) {
+inline int Montage::cost(int index_a, int index_b, int row1, int col1, int row2, int col2) const {
     return norm(index_a, index_b, row1, col1) + norm(index_a, index_b, row2, col2);
 }
 
@@ -168,7 +168,7 @@ void Montage::assemble(int index, int offset_row, int offset_col) {
     }
     // Compute the min-cut
 
-    int flow = graph.maxflow();
+    graph.maxflow();
 
     // Get new color for all overlapped pixels
 
@@ -196,24 +196,67 @@ void Montage::reset() {
         }
 }
 
-void Montage::show() {
+void Montage::show() const {
+    map<int,int> colors;
+    int index = 0;
+    short c;
     Mat tmp(mask.rows, mask.cols, CV_8U);
     for(int row = 0; row < mask.rows; row++)
-        for(int col = 0; col < mask.cols; col++)
-            tmp.at<uchar>(row, col) = uchar((mask.at<Vec3s>(row, col)[0] + 1) * 255 / photos.size());
+        for(int col = 0; col < mask.cols; col++) {
+            c = mask.at<Vec3s>(row, col)[0];
+            if (colors.count(c) == 0)
+                colors[c] = index++;
+        }
+    int count = int(colors.size()) - 1;
+    for (auto a: colors)
+        colors[a.first] = count--;
+    for(int row = 0; row < mask.rows; row++)
+        for(int col = 0; col < mask.cols; col++) {
+            c = mask.at<Vec3s>(row, col)[0];
+            tmp.at<uchar>(row, col) = uchar(colors[c] * 255.0 / colors.size());
+        }
     imshow("Mask", tmp);
     imshow("Image", nap);
 }
 
-void Montage::save(string img_name, string mask_name) {
-    Rect rect(max_col * 0.12, max_row * 0.12 , max_col * 0.85, max_row * 0.85);
-    Mat output_nap = nap(rect);
-    imwrite(img_name,output_nap);
+void Montage::save_mask(string mask_name) const {
+    Rect rect(photos[0].cols / 3, photos[0].rows / 3, max_col - photos[0].cols / 3 - 1, max_row - photos[0].rows / 3 - 1);
+
+    // find all existing patches
 
     Mat tmp(mask.rows, mask.cols, CV_8U);
+    map<int,int> colors;
+    int index = 0;
+    short c;
     for(int row = 0; row < mask.rows; row++)
-        for(int col = 0; col < mask.cols; col++)
-            tmp.at<uchar>(row, col) = uchar((mask.at<Vec3s>(row, col)[0] + 1) * 255 / photos.size());
+        for(int col = 0; col < mask.cols; col++) {
+            c = mask.at<Vec3s>(row, col)[0];
+            if (colors.count(c) == 0)
+                colors[c] = index++;
+        }
+
+    // reorder colors
+
+    int count = int(colors.size()) - 1;
+    for (auto a: colors)
+        colors[a.first] = count--;
+
+    // compute new color
+
+    for(int row = 0; row < mask.rows; row++)
+        for(int col = 0; col < mask.cols; col++) {
+            c = mask.at<Vec3s>(row, col)[0];
+            tmp.at<uchar>(row, col) = uchar(colors[c] * 255.0 / colors.size());
+        }
+
+    // crop the result
+
     Mat output_mask = tmp(rect);
     imwrite(mask_name,output_mask);
+}
+
+void Montage::save_output(Mat &output) const {
+    for (int row = 0; row < nap.rows; row++)
+        for (int col = 0; col < nap.cols; col++)
+            output.at<Vec3b>(row, col) = nap.at<Vec3b>(row, col);
 }

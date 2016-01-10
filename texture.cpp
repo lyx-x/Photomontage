@@ -13,10 +13,11 @@
  *      d: scaling direction in tangent form (d = delta_y / delta_x)
  *      m: patch finding mode (0 for Random placement, 1 for Entire patch matching, or 2 for Sub-patch matching)
  *      t: number of iterations
+ *      r: rotation range
  *
  * Usage:
  *      texture -i [input_file] -o [output_file] -h [height] -w [weight] -s [scale] -d [direction] -m [patch_mode]
- *              -t [iteration]
+ *              -t [iteration] -r [rotation_range]
  *
  * Example:
  *      texture -i samples/floor.jpg -o results/floor.jpg -h 256 -w 256
@@ -33,42 +34,29 @@ using namespace cv;
 
 enum Patch_Mode {Random, Entire, Sub_Match};
 
-int max_row = 500;
-int max_col = 500;
-
 /**
  * Texture generation function: the input and output matrix must be allocated with a valid dimension before calling
  * this function
  */
-void generate(Mat& input, Mat& output, int iteration, float scaling_factor, float dir, Patch_Mode patch_mode) {
+void generate(Mat& input, Mat& output, int iteration, float scaling_factor, float dir, Patch_Mode patch_mode = Random, int range = 0) {
 
     int height = output.rows;
     int width = output.cols;
 
-    int sample_height = input.rows;
-    int sample_width = input.cols;
-
-    // write directly on the output
-
-    for (int row = 0; row < sample_height; row++)
-        for (int col = 0; col < sample_width; col++)
-            output.at<Vec3b>(row, col) = input.at<Vec3b>(row, col);
-
     // loop in order to cover the whole image
 
-    Montage montage(max_row, max_col);
+    Montage montage(height, width);
     montage.add_photo(input);
     montage.reset();
-    montage.assemble(0,0,0);
+    montage.assemble(0, 0, 0); // add the first image
 
     int count  = 1;
-    while(iteration--){
-        int row = rand() % (max_row);
-        int col = rand() % (max_col);
-        int rotation = rand() % 180;
-        //int rotation = 0;
+    while(iteration--) {
+        int row = rand() % height;
+        int col = rand() % width;
+        int rotation = (range > 0) ? rand() % range : 0; // add random rotation
 
-        float distance = float(row + col * dir)/sqrt(1.0 + dir * dir);
+        float distance = float((row + col * dir) / sqrt(1.0 + dir * dir));
         float resize_factor = scaling_factor / (scaling_factor + distance);
         if (scaling_factor == 0)
             resize_factor = 1;
@@ -77,20 +65,18 @@ void generate(Mat& input, Mat& output, int iteration, float scaling_factor, floa
         Mat temp;
         resize(input,temp,size);
 
-        cv::Point2f pc(temp.cols/2., temp.rows/2.);
+        cv::Point2f pc(temp.cols / 2.0f, temp.rows / 2.0f);
         cv::Mat r = cv::getRotationMatrix2D(pc, rotation, 1.0);
         cv::warpAffine(temp, temp, r, temp.size());
 
         montage.add_photo(temp);
         montage.assemble(count++,row,col);
-        //waitKey();
-        //cin >> key;
-        //if (key == 'q')
-          //  break;
     }
-    montage.show();
-    montage.save("img_bean.jpg","mask_bean.jpg");
-    waitKey(0);
+
+    montage.save_output(output);
+    //montage.show();
+    montage.save_mask("results/mask.jpg");
+
 }
 
 /*
@@ -100,14 +86,15 @@ int main(int argc, char** argv) {
 
     // reading the parameters
 
-    /*string input_file;
+    string input_file;
     string output_file;
     int height = 0;
     int width = 0;
-    float scale = 1;
-    float direction = 0;
+    float scale = 0;
+    float direction = 1;
     Patch_Mode patch_mode = Random;
-    int iteration;
+    int iteration = 0;
+    int range = 0;
 
     for (int i = 1; i < argc; i++)
         switch (argv[i][1]) {
@@ -135,6 +122,9 @@ int main(int argc, char** argv) {
             case 't':
                 iteration = atoi(argv[++i]);
                 break;
+            case 'r':
+                range = atoi(argv[++i]);
+                break;
             default:
                 return EXIT_FAILURE;
         }
@@ -145,25 +135,22 @@ int main(int argc, char** argv) {
     // allocate the memory and load the image
 
     Mat input = imread(input_file, IMREAD_COLOR);
-    Mat output(height, width, CV_8UC3);
+    Mat output(height + 2 * input.rows / 3, width + 2 * input.cols / 3, CV_8UC3);
 
     imshow(input_file, input);
-    waitKey(0);
 
     // call the function
 
-    generate(input, output, iteration, scale, direction, patch_mode);
+    generate(input, output, iteration, scale, direction, patch_mode, range);
 
     // show/save the result
 
-    imshow(output_file, output);
-    waitKey(0);*/
-    string inputfile = "samples/bean.jpg";
-    Mat input = imread(inputfile);
-    if (input.rows >= 500)
-        resize(input,input,Size(input.rows/10, input.cols/10));
-    Mat output(input.rows, input.cols, CV_8UC3);
-    generate(input,output,200,0,1,Patch_Mode(Random));
+    Rect rect(input.cols / 3, input.rows / 3, width - input.cols / 3 - 1, height - input.rows / 3 - 1);
+    Mat output_nap = output(rect);
+    imwrite(output_file, output_nap);
+
+    imshow(output_file, output_nap);
+    waitKey(0);
 
     return EXIT_SUCCESS;
 }
