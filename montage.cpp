@@ -101,7 +101,7 @@ void Montage::assemble(int index, int offset_row, int offset_col, set<pair<int,i
 
     if (constraint != NULL)
         for (auto p : *constraint)
-            fixed.at<schar>(p.first, p.second) = (schar)index;
+            fixed.at<schar>(p.first + offset_row, p.second + offset_col) = (schar)index;
 
     Mat patch = photos[index];
     while(offset.size() <= index)
@@ -172,9 +172,9 @@ void Montage::assemble(int index, int offset_row, int offset_col, set<pair<int,i
         }
 
         // Add constraints for source and sink
-        if (int(fixed.at<schar>(overlap[i].first, overlap[i].second)) == index)
+        if (int(fixed.at<schar>(row_mask, col_mask)) == index)
            graph.add_tweights(i,0,infinity);
-        else if (int(fixed.at<schar>(overlap[i].first, overlap[i].second)) != -1)
+        else if (int(fixed.at<schar>(row_mask, col_mask)) != -1)
             graph.add_tweights(i,infinity,0);
         else if (is_center_photo(overlap[i], index) && constraint->size() == 0) { // the center of patch must remain
             graph.add_tweights(i, 0, infinity);
