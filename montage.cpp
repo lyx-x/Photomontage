@@ -176,7 +176,7 @@ void Montage::assemble(int index, int offset_row, int offset_col, set<pair<int,i
            graph.add_tweights(i,0,infinity);
         else if (int(fixed.at<schar>(overlap[i].first, overlap[i].second)) != -1)
             graph.add_tweights(i,infinity,0);
-        else if (is_center_photo(overlap[i], index)) { // the center of patch must remain
+        else if (is_center_photo(overlap[i], index) && constraint->size() == 0) { // the center of patch must remain
             graph.add_tweights(i, 0, infinity);
         } else {
             if (is_border_mask(overlap[i].first + offset_row, overlap[i].second + offset_col)) {
