@@ -78,6 +78,19 @@ void Montage::add_photo(Mat photo) {
     photos.push_back(photo);
 }
 
+/*
+ * Assemble two photos, the existing image is described with a mask matrix indicating to witch image belongs each pixel,
+ * it will be partly rewritten by the new image
+ *
+ * Params:
+ *      (global) photos: list of images
+ *      (global) nap: old image
+ *      (global) mask: matrix of indices, mask[i,j] = k only if photos[k][i,j] = existing[i,j], the default value is -1
+ *      offset_row: offset position in x
+ *      offset_col: offset position in y
+ *      index: index of the new patch
+ *
+ */
 void Montage::assemble(int index, int offset_row, int offset_col) {
     // the overlapped part of nap and photos[index_new]
     if (photos[index].rows + offset_row >= max_row || photos[index].cols + offset_col >= max_col){
