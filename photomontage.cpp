@@ -13,6 +13,11 @@
  * Usage:
  *      montage -i [number_of_photos] [photo_1] .. [photo_n] -o [output_file] -h [height] -w [weight]
  *
+ * Usage of control window:
+ *      Deplace the trackbar to control the position
+ *      Left click to setup constraint with small circle
+ *      Right click to clean all existing constraints of that image
+ *
  */
 
 #include <iostream>
@@ -21,8 +26,6 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 #include "montage.h"
-
-//#include "graph.h"
 
 using namespace std;
 using namespace cv;
@@ -33,7 +36,7 @@ vector<Mat> photos;
 vector<set<pair<int,int>>> constraints;
 int *value_row, *value_col;
 
-const int range = 5; // use small square instead of a single pixel for control
+const int range = 5; // use small circle instead of a single pixel for control
 
 void assemble() {
     montage.reset();
@@ -46,19 +49,23 @@ void on_mouse(int event, int x, int y, int flag, void* p) {
     set<pair<int,int>> *constraint = (set<pair<int,int>>*)p;
     switch (event) {
         case EVENT_LBUTTONDOWN:
-            cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
             for (int i = 0 - range; i <= range; i++)
                 for (int j = 0 - range; j <= range; j++) {
-                    
+                    int _x = x + i;
+                    int _y = y + j;
+                    if (i * i + j * j <= range * range)
+                        if (x >= 0 && x < photos[i].cols && y >= 0 && y <= photos[i].rows)
+                            constraint->insert(make_pair(_x, _y));
                 }
-            constraint->insert(make_pair(x, y));
             break;
         case EVENT_RBUTTONDOWN:
-            cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+            constraint->clear();
             break;
         default:
             return;
     }
+    //for (auto px : *constraint)
+    //    cout << px.first << ' ' << px.second << endl;
     assemble();
 }
 
@@ -118,7 +125,7 @@ int main(int argc, char** argv) {
     montage = Montage(width + extra_width, height + extra_height);
 
     for (int i = 0; i < num_files; i++) {
-        namedWindow(input_files[i]);
+        namedWindow(input_files[i], CV_GUI_NORMAL);
         imshow(input_files[i], photos[i]);
         montage.add_photo(photos[i]);
         // set random position at first
@@ -128,7 +135,6 @@ int main(int argc, char** argv) {
         createTrackbar("Row", input_files[i], value_row + i, height + extra_height - photos[i].rows - 1, on_trackbar);
         createTrackbar("Col", input_files[i], value_col + i, width + extra_width - photos[i].cols - 1, on_trackbar);
         // add mouse callback
-        constraints[i].insert(make_pair(i,i));
         setMouseCallback(input_files[i], on_mouse, &constraints[i]);
     }
 
