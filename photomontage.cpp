@@ -34,6 +34,8 @@ Montage montage(600,1024);
 
 vector<Mat> photos;
 vector<set<pair<int,int>>> constraints;
+vector<int> photo_index;
+vector<string> input_files;
 int *value_row, *value_col;
 
 const int range = 5; // use small circle instead of a single pixel for control
@@ -46,7 +48,8 @@ void assemble() {
 }
 
 void on_mouse(int event, int x, int y, int flag, void* p) {
-    set<pair<int,int>> *constraint = (set<pair<int,int>>*)p;
+    int* index = (int*)p;
+    set<pair<int,int>>* constraint = &constraints[*index];
     switch (event) {
         case EVENT_LBUTTONDOWN:
             for (int i = 0 - range; i <= range; i++)
@@ -54,8 +57,8 @@ void on_mouse(int event, int x, int y, int flag, void* p) {
                     int _x = x + i;
                     int _y = y + j;
                     if (i * i + j * j <= range * range)
-                        if (x >= 0 && x < photos[i].cols && y >= 0 && y <= photos[i].rows)
-                            constraint->insert(make_pair(_x, _y));
+                        if (_x >= 0 && _x < photos[*index].cols && _y >= 0 && _y <= photos[*index].rows)
+                            constraint->insert(make_pair(_y, _x));
                 }
             break;
         case EVENT_RBUTTONDOWN:
@@ -64,8 +67,13 @@ void on_mouse(int event, int x, int y, int flag, void* p) {
         default:
             return;
     }
-    //for (auto px : *constraint)
-    //    cout << px.first << ' ' << px.second << endl;
+    Mat tmp = photos[*index].clone();
+    cout << "//////" << endl;
+    for (auto px : *constraint) {
+        cout << px.first << ' ' << px.second << endl;
+        tmp.at<Vec3b>(px.first,px.second) = Vec3b(0,255,0);
+    }
+    imshow(input_files[*index],tmp);
     assemble();
 }
 
@@ -77,7 +85,7 @@ int main(int argc, char** argv) {
 
     // initialization
 
-    vector<string> input_files;
+
     string output_file;
     int height = 480;
     int width = 800;
@@ -107,8 +115,9 @@ int main(int argc, char** argv) {
         }
 
     // preparation
-
+    photo_index.clear();
     for (int i = 0; i < num_files; i++) {
+        photo_index.push_back(i);
         Mat img = imread(input_files[i], CV_LOAD_IMAGE_COLOR);
         photos.push_back(img);
         extra_height = max(extra_height, img.rows);
@@ -135,7 +144,7 @@ int main(int argc, char** argv) {
         createTrackbar("Row", input_files[i], value_row + i, height + extra_height - photos[i].rows - 1, on_trackbar);
         createTrackbar("Col", input_files[i], value_col + i, width + extra_width - photos[i].cols - 1, on_trackbar);
         // add mouse callback
-        setMouseCallback(input_files[i], on_mouse, &constraints[i]);
+        setMouseCallback(input_files[i], on_mouse, &photo_index[i]);
     }
 
     assemble();
