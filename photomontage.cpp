@@ -68,12 +68,9 @@ void on_mouse(int event, int x, int y, int flag, void* p) {
             return;
     }
     Mat tmp = photos[*index].clone();
-    cout << "//////" << endl;
-    for (auto px : *constraint) {
-        cout << px.first << ' ' << px.second << endl;
-        tmp.at<Vec3b>(px.first,px.second) = Vec3b(0,255,0);
-    }
-    imshow(input_files[*index],tmp);
+    for (auto px : *constraint)
+        tmp.at<Vec3b>(px.first, px.second) = Vec3b(0, 255, 0);
+    imshow(input_files[*index], tmp);
     assemble();
 }
 
@@ -111,8 +108,8 @@ int main(int argc, char** argv) {
                 return EXIT_FAILURE;
         }
 
-    int extra_height = height / 8; // extra space to manipulate the nap
-    int extra_width = width / 8;
+    int extra_height = height / 4; // extra space to manipulate the nap
+    int extra_width = width / 4;
 
     // preparation
 
