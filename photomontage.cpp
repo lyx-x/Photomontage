@@ -43,7 +43,7 @@ const int range = 5; // use small circle instead of a single pixel for control
 void assemble() {
     montage.reset();
     for(int i = 0; i < photos.size(); i++)
-        montage.assemble(i, value_row[i], value_col[i]);
+        montage.assemble(i, value_row[i], value_col[i], &constraints[i]);
     montage.show();
 }
 

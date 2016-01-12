@@ -13,6 +13,7 @@ Montage::Montage(int height, int width) {
     max_col = width;
     nap = Mat(max_row, max_col, CV_8UC3);
     mask = Mat(max_row, max_col, CV_16SC3);
+    fixed = Mat(max_row, max_col, CV_8SC1);
 }
 
 inline bool Montage::is_overlapped(int row, int col) const {
@@ -91,12 +92,16 @@ void Montage::add_photo(Mat photo) {
  *      index: index of the new patch
  *
  */
-void Montage::assemble(int index, int offset_row, int offset_col) {
+void Montage::assemble(int index, int offset_row, int offset_col, set<pair<int,int>> *constraint) {
     // the overlapped part of nap and photos[index_new]
     if (photos[index].rows + offset_row >= max_row || photos[index].cols + offset_col >= max_col){
         Rect myROI(0, 0, min(max_col - offset_col, photos[index].cols), min(max_row - offset_row, photos[index].rows));
         photos[index] = photos[index](myROI);
     }
+
+    if (constraint != NULL)
+        for (auto p : *constraint)
+            fixed.at<schar>(p.first, p.second) = (schar)index;
 
     Mat patch = photos[index];
     while(offset.size() <= index)
@@ -167,8 +172,11 @@ void Montage::assemble(int index, int offset_row, int offset_col) {
         }
 
         // Add constraints for source and sink
-
-        if (is_center_photo(overlap[i], index)) { // the center of patch must remain
+        if (int(fixed.at<schar>(overlap[i].first, overlap[i].second)) == index)
+           graph.add_tweights(i,0,infinity);
+        else if (int(fixed.at<schar>(overlap[i].first, overlap[i].second)) != -1)
+            graph.add_tweights(i,infinity,0);
+        else if (is_center_photo(overlap[i], index)) { // the center of patch must remain
             graph.add_tweights(i, 0, infinity);
         } else {
             if (is_border_mask(overlap[i].first + offset_row, overlap[i].second + offset_col)) {
@@ -206,6 +214,7 @@ void Montage::reset() {
         for (int col = 0; col < nap.cols; col++) {
             nap.at<Vec3b>(row, col) = Vec3b(0, 0, 0);
             mask.at<Vec3s>(row, col) = Vec3s(-1, 0, 0);
+            fixed.at<schar>(row,col) = schar(-1);
         }
 }
 

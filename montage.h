@@ -6,6 +6,7 @@
 #define MONTAGE_H
 
 #include <vector>
+#include <set>
 #include <iostream>
 #include <opencv2/highgui/highgui.hpp>
 
@@ -34,7 +35,7 @@ private:
 public:
     Montage(int width, int height);
     void add_photo(Mat photo); // add a photo to queue
-    void assemble(int index, int row, int col); // add a new image at a specific position
+    void assemble(int index, int row, int col, set<pair<int,int>> *constraint = NULL); // add a new image at a specific position
     void reset();
     void show() const; // show result
     void save_mask(string mask_name) const; // save the mask after cropping
