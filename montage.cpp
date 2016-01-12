@@ -142,32 +142,37 @@ void Montage::assemble(int index, int offset_row, int offset_col, set<pair<int,i
         if (is_overlapped(row_mask + 1, col_mask)) {
             if (mask.at<Vec3s>(row_mask + 1, col_mask)[0] != mask.at<Vec3s>(row_mask, col_mask)[0]){
                 graph.add_node(1);
-                graph.add_tweights(seam_index,0,
-                                   cost(mask.at<Vec3s>(row_mask+1, col_mask)[0],mask.at<Vec3s>(row_mask, col_mask)[0],row_mask,col_mask,row_mask + 1,col_mask));
-                graph.add_edge(i,seam_index,cost(mask.at<Vec3s>(row_mask, col_mask)[0],index, row_mask,col_mask,row_mask + 1,col_mask),
-                               cost(mask.at<Vec3s>(row_mask, col_mask)[0],index, row_mask,col_mask,row_mask + 1,col_mask));
-                graph.add_edge(seam_index,map_overlap[make_pair(row + 1, col)], cost(mask.at<Vec3s>(row_mask + 1, col_mask)[0],index, row_mask,col_mask,row_mask + 1,col_mask),
-                               cost(mask.at<Vec3s>(row_mask + 1, col_mask)[0],index, row_mask,col_mask,row_mask + 1,col_mask));
+                graph.add_tweights(seam_index, 0,
+                                   cost(mask.at<Vec3s>(row_mask + 1, col_mask)[0],
+                                        mask.at<Vec3s>(row_mask, col_mask)[0], row_mask, col_mask, row_mask + 1, col_mask));
+                graph.add_edge(i, seam_index, cost(mask.at<Vec3s>(row_mask, col_mask)[0],
+                                                 index, row_mask, col_mask, row_mask + 1, col_mask),
+                               cost(mask.at<Vec3s>(row_mask, col_mask)[0], index, row_mask, col_mask, row_mask + 1, col_mask));
+                graph.add_edge(seam_index, map_overlap[make_pair(row + 1, col)], cost(mask.at<Vec3s>(row_mask + 1, col_mask)[0], index, row_mask, col_mask, row_mask + 1, col_mask),
+                               cost(mask.at<Vec3s>(row_mask + 1, col_mask)[0], index, row_mask, col_mask, row_mask + 1,col_mask));
                 seam_index++;
             }else {
-                graph.add_edge(i, map_overlap[make_pair(row + 1, col)], cost(index, mask.at<Vec3s>(row_mask + 1, col_mask)[0], row_mask,col_mask,row_mask + 1,col_mask),
-                               cost(index, mask.at<Vec3s>(row_mask + 1, col_mask)[0], row_mask,col_mask,row_mask + 1,col_mask));
+                graph.add_edge(i, map_overlap[make_pair(row + 1, col)], cost(index, mask.at<Vec3s>(row_mask + 1, col_mask)[0], row_mask, col_mask, row_mask + 1, col_mask),
+                               cost(index, mask.at<Vec3s>(row_mask + 1, col_mask)[0], row_mask, col_mask, row_mask + 1, col_mask));
             }
         }
 
         if (is_overlapped(row_mask, col_mask + 1)) {
             if (mask.at<Vec3s>(row_mask, col_mask + 1)[0] != mask.at<Vec3s>(row_mask, col_mask)[0]){
                 graph.add_node(1);
-                graph.add_tweights(seam_index,0,
-                                   cost(mask.at<Vec3s>(row_mask, col_mask + 1)[0],mask.at<Vec3s>(row_mask, col_mask)[0],row_mask,col_mask,row_mask,col_mask + 1));
-                graph.add_edge(i,seam_index,cost(mask.at<Vec3s>(row_mask, col_mask)[0],index, row_mask,col_mask,row_mask,col_mask + 1),
-                               cost(mask.at<Vec3s>(row_mask, col_mask)[0],index, row_mask,col_mask,row_mask,col_mask + 1));
-                graph.add_edge(seam_index,map_overlap[make_pair(row, col + 1)], cost(mask.at<Vec3s>(row_mask, col_mask + 1)[0],index, row_mask,col_mask,row_mask,col_mask + 1),
-                               cost(mask.at<Vec3s>(row_mask, col_mask + 1)[0],index, row_mask,col_mask,row_mask,col_mask + 1));
+                graph.add_tweights(seam_index, 0,
+                                   cost(mask.at<Vec3s>(row_mask, col_mask + 1)[0],
+                                        mask.at<Vec3s>(row_mask, col_mask)[0], row_mask, col_mask, row_mask, col_mask + 1));
+                graph.add_edge(i, seam_index,cost(mask.at<Vec3s>(row_mask, col_mask)[0],
+                                                  index, row_mask,col_mask, row_mask,col_mask + 1),
+                               cost(mask.at<Vec3s>(row_mask, col_mask)[0], index, row_mask, col_mask, row_mask, col_mask + 1));
+                graph.add_edge(seam_index,map_overlap[make_pair(row, col + 1)], cost(mask.at<Vec3s>(row_mask, col_mask + 1)[0],
+                                                                                     index, row_mask, col_mask, row_mask, col_mask + 1),
+                               cost(mask.at<Vec3s>(row_mask, col_mask + 1)[0], index, row_mask, col_mask, row_mask, col_mask + 1));
                 seam_index++;
             }else {
-                graph.add_edge(i, map_overlap[make_pair(row, col + 1)], cost(index, mask.at<Vec3s>(row_mask, col_mask + 1)[0], row_mask,col_mask,row_mask,col_mask + 1),
-                               cost(index, mask.at<Vec3s>(row_mask, col_mask + 1)[0], row_mask,col_mask,row_mask,col_mask + 1));
+                graph.add_edge(i, map_overlap[make_pair(row, col + 1)], cost(index, mask.at<Vec3s>(row_mask, col_mask + 1)[0], row_mask, col_mask, row_mask, col_mask + 1),
+                               cost(index, mask.at<Vec3s>(row_mask, col_mask + 1)[0], row_mask, col_mask, row_mask, col_mask + 1));
             }
         }
 
