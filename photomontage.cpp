@@ -85,12 +85,9 @@ int main(int argc, char** argv) {
 
     // initialization
 
-
     string output_file;
     int height = 480;
     int width = 800;
-    int extra_height = 0; // extra space to manipulate the nap
-    int extra_width = 0;
     int num_files = 0;
 
     for (int i = 1; i < argc; i++)
@@ -114,14 +111,18 @@ int main(int argc, char** argv) {
                 return EXIT_FAILURE;
         }
 
+    int extra_height = height / 8; // extra space to manipulate the nap
+    int extra_width = width / 8;
+
     // preparation
+
     photo_index.clear();
     for (int i = 0; i < num_files; i++) {
         photo_index.push_back(i);
         Mat img = imread(input_files[i], CV_LOAD_IMAGE_COLOR);
         photos.push_back(img);
-        extra_height = max(extra_height, img.rows);
-        extra_width = max(extra_width, img.cols);
+        height = max(height, img.rows);
+        width = max(width, img.cols);
         // add new set of constraints
         set<pair<int,int>> constraint;
         constraints.push_back(constraint);
@@ -131,7 +132,7 @@ int main(int argc, char** argv) {
     value_col = new int[num_files];
 
     Mat output;
-    montage = Montage(width + extra_width, height + extra_height);
+    montage = Montage(height + extra_height, width + extra_width);
 
     for (int i = 0; i < num_files; i++) {
         namedWindow(input_files[i], CV_GUI_NORMAL);

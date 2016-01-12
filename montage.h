@@ -33,7 +33,7 @@ private:
     inline int cost(int index_a, int index_b, int row1, int col1, int row2, int col2) const;
 
 public:
-    Montage(int width, int height);
+    Montage(int height, int width);
     void add_photo(Mat photo); // add a photo to queue
     void assemble(int index, int row, int col, set<pair<int,int>> *constraint = NULL); // add a new image at a specific position
     void reset();
