@@ -20,6 +20,6 @@ montage -i [number_of_photos] [photo_1] .. [photo_n] -o [output_file] -h [height
 Here are two examples:
 
 ```
-texture -i samples/floor.jpg -o results/floor.jpg -h 256 -w 256
+texture -i samples/floor.jpg -o results/floor.jpg -h 256 -w 256 -t 1000 -r 180
 montage -i 2 photos/left.jpg photos/right.jpg -o results/montage.jpg -h 384 -w 512
 ```
