@@ -3,7 +3,7 @@
 ##About
 
 This project is based on Mr. Kwatra's paper [Graphcut Textures: Image and Video Synthesis Using Graph Cuts](http://www.cc.gatech.edu/cpl/projects/graphcuttextures/gc-final-lowres.pdf) 
-and Mr. Agarwala1's [Interactive Digital Photomontage](http://kneecap.cs.berkeley.edu/papers/photomontage/photomontage.pdf). It is an implementation of graph cuts technique.
+and Mr. Agarwala's [Interactive Digital Photomontage](http://kneecap.cs.berkeley.edu/papers/photomontage/photomontage.pdf). It is an implementation of graph cuts technique.
 We use two applications, photomontage and texture generation to illustrate this algorithm.
 
 Texture generation is automatic, while photomontage need human order. The how-to is inside the code and the user interface should be easy to understand.
