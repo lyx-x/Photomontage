@@ -7,8 +7,10 @@
 
 #include <vector>
 #include <set>
+#include <map>
 #include <iostream>
 #include <opencv2/highgui/highgui.hpp>
+#include "maxflow/graph.h"
 
 using namespace std;
 using namespace cv;

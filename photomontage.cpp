@@ -51,7 +51,7 @@ void assemble() {
     for(int i = 0; i < photos.size(); i++)
         montage.assemble(i, value_row[i], value_col[i], &constraints[i]);
     montage.show();
-    montage.save_mask("results/mask_montage.jpg");
+    // montage.save_mask("results/mask_montage.jpg");
 }
 
 /*

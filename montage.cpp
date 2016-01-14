@@ -3,11 +3,8 @@
 //
 
 #include "montage.h"
-#include <map>
-#include "maxflow/graph.h"
 
-
-const int infinity = 1<<30;
+const int infinity = 1 << 30;
 
 Montage::Montage(int row, int col, int ex_row, int ex_col): extra_row(ex_row), extra_col(ex_col) {
     max_row = row + 2 * ex_row;
@@ -152,10 +149,9 @@ void Montage::assemble(int index, int offset_row, int offset_col, set<pair<int,i
                 graph.add_edge(seam_index, map_overlap[make_pair(row + 1, col)], cost(mask.at<Vec3s>(row_mask + 1, col_mask)[0], index, row_mask, col_mask, row_mask + 1, col_mask),
                                cost(mask.at<Vec3s>(row_mask + 1, col_mask)[0], index, row_mask, col_mask, row_mask + 1,col_mask));
                 seam_index++;
-            }else {
+            } else
                 graph.add_edge(i, map_overlap[make_pair(row + 1, col)], cost(index, mask.at<Vec3s>(row_mask + 1, col_mask)[0], row_mask, col_mask, row_mask + 1, col_mask),
                                cost(index, mask.at<Vec3s>(row_mask + 1, col_mask)[0], row_mask, col_mask, row_mask + 1, col_mask));
-            }
         }
 
         if (col + 1 < photos[index].cols && is_overlapped(row_mask, col_mask + 1)) {
@@ -171,10 +167,9 @@ void Montage::assemble(int index, int offset_row, int offset_col, set<pair<int,i
                                                                                      index, row_mask, col_mask, row_mask, col_mask + 1),
                                cost(mask.at<Vec3s>(row_mask, col_mask + 1)[0], index, row_mask, col_mask, row_mask, col_mask + 1));
                 seam_index++;
-            }else {
+            } else
                 graph.add_edge(i, map_overlap[make_pair(row, col + 1)], cost(index, mask.at<Vec3s>(row_mask, col_mask + 1)[0], row_mask, col_mask, row_mask, col_mask + 1),
                                cost(index, mask.at<Vec3s>(row_mask, col_mask + 1)[0], row_mask, col_mask, row_mask, col_mask + 1));
-            }
         }
 
         // Add constraints for source and sink
@@ -299,6 +294,7 @@ void Montage::save_mask(string mask_name) const {
 }
 
 void Montage::save_output(Mat &output) const {
+    // do not output the extra area
     for (int row = 0; row < output.rows; row++)
         for (int col = 0; col < output.cols; col++)
             output.at<Vec3b>(row, col) = nap.at<Vec3b>(row + extra_row, col + extra_col);

@@ -22,12 +22,11 @@
  * Example:
  *      texture -i samples/floor.jpg -o results/floor.jpg -h 256 -w 256
  *
- * N.B: always use the power to 2 for dimension to simplify the calculation
+ * N.B: when choose a small scaling factor, make sure the iteration is large enough to cover
  */
 
 #include <iostream>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <cmath>
 #include "montage.h"
 
 using namespace std;
@@ -79,7 +78,7 @@ void generate(Mat& input, Mat& output, int iteration, float scaling_factor, floa
     }
 
     montage.save_output(output);
-    montage.save_mask("results/mask.jpg");
+    // montage.save_mask("results/mask.jpg");
 
 }
 
