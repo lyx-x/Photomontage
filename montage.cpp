@@ -140,7 +140,7 @@ void Montage::assemble(int index, int offset_row, int offset_col, set<pair<int,i
 
         // Add adjacent edges and seams
 
-        if (is_overlapped(row_mask + 1, col_mask)) {
+        if (row + 1 < photos[index].rows && is_overlapped(row_mask + 1, col_mask)) {
             if (mask.at<Vec3s>(row_mask + 1, col_mask)[0] != mask.at<Vec3s>(row_mask, col_mask)[0]){
                 graph.add_node(1);
                 graph.add_tweights(seam_index, 0,
@@ -158,7 +158,7 @@ void Montage::assemble(int index, int offset_row, int offset_col, set<pair<int,i
             }
         }
 
-        if (is_overlapped(row_mask, col_mask + 1)) {
+        if (col + 1 < photos[index].cols && is_overlapped(row_mask, col_mask + 1)) {
             if (mask.at<Vec3s>(row_mask, col_mask + 1)[0] != mask.at<Vec3s>(row_mask, col_mask)[0]){
                 graph.add_node(1);
                 graph.add_tweights(seam_index, 0,

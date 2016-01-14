@@ -27,6 +27,7 @@
 
 #include <iostream>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <cmath>
 #include "montage.h"
 
 using namespace std;
@@ -59,7 +60,7 @@ void generate(Mat& input, Mat& output, int iteration, float scaling_factor, floa
         int rotation = (range > 0) ? rand() % range : 0; // add random rotation
 
         float distance = float((row + col * dir) / sqrt(1.0 + dir * dir));
-        float resize_factor = scaling_factor / (scaling_factor + distance);
+        float resize_factor = pow(scaling_factor,(distance/height));
         if (scaling_factor == 0)
             resize_factor = 1;
 
