@@ -32,7 +32,7 @@
 using namespace std;
 using namespace cv;
 
-enum Patch_Mode {Random, Entire, Sub_Match};
+enum Patch_Mode {Random, Entire, Sub_Match}; // only the random method has been implemented
 
 /**
  * Texture generation function: the input and output matrix must be allocated with a valid dimension before calling
@@ -43,17 +43,19 @@ void generate(Mat& input, Mat& output, int iteration, float scaling_factor, floa
     int height = output.rows;
     int width = output.cols;
 
-    // loop in order to cover the whole image
+    // prepare the nap
 
     Montage montage(height, width, height / 3, width / 3);
     montage.add_photo(input);
     montage.reset();
     montage.assemble(0, 0, 0); // add the first image
 
+    // loop in order to cover the whole image
+
     int count  = 1;
-    while(iteration--) {
-        int row = rand() % height;
-        int col = rand() % width;
+    while (iteration--) {
+        int row = rand() % (height + height / 3 * 2); // random point on the whole nap
+        int col = rand() % (width + width / 3 * 2);
         int rotation = (range > 0) ? rand() % range : 0; // add random rotation
 
         float distance = float((row + col * dir) / sqrt(1.0 + dir * dir));
@@ -62,19 +64,20 @@ void generate(Mat& input, Mat& output, int iteration, float scaling_factor, floa
             resize_factor = 1;
 
         Size size(int(input.cols * resize_factor), int(input.rows * resize_factor));
-        Mat temp;
-        resize(input,temp,size);
+        Mat tmp;
+        resize(input, tmp, size);
 
-        cv::Point2f pc(temp.cols / 2.0f, temp.rows / 2.0f);
-        cv::Mat r = cv::getRotationMatrix2D(pc, rotation, 1.0);
-        cv::warpAffine(temp, temp, r, temp.size());
+        // rotate the image
 
-        montage.add_photo(temp);
-        montage.assemble(count++,row,col);
+        Point2f pc(tmp.cols / 2.0f, tmp.rows / 2.0f);
+        Mat r = getRotationMatrix2D(pc, rotation, 1.0);
+        warpAffine(tmp, tmp, r, tmp.size());
+
+        montage.add_photo(tmp);
+        montage.assemble(count++, row, col);
     }
 
     montage.save_output(output);
-    //montage.show();
     montage.save_mask("results/mask.jpg");
 
 }

@@ -13,8 +13,11 @@
  * Usage:
  *      montage -i [number_of_photos] [photo_1] .. [photo_n] -o [output_file] -h [height] -w [weight]
  *
+ * Ex:
+ *      montage -i 2 photos/left.jpg photos/right.jpg -o results/montage.jpg -h 384 -w 512
+ *
  * Usage of control window:
- *      Deplace the trackbar to control the position
+ *      Move the trackbar to control the position
  *      Left click to setup constraint with small circle
  *      Right click to clean all existing constraints of that image
  *
@@ -30,16 +33,19 @@
 using namespace std;
 using namespace cv;
 
-Montage montage(600,1024);
+Montage montage(600,1024); // the paint zone
 
-vector<Mat> photos;
-vector<set<pair<int,int>>> constraints;
-vector<int> photo_index;
-vector<string> input_files;
-int *value_row, *value_col;
+vector<Mat> photos; // list of photos
+vector<set<pair<int,int>>> constraints; // list of constraints for each image
+vector<int> photo_index; // list of consecutive numbers for mouse control
+vector<string> input_files; // name of photos
+int *value_row, *value_col; // ralative position of each image
 
 const int range = 5; // use small circle instead of a single pixel for control
 
+/*
+ * Method that combines all photos
+ */
 void assemble() {
     montage.reset();
     for(int i = 0; i < photos.size(); i++)
@@ -48,34 +54,45 @@ void assemble() {
     montage.save_mask("results/mask_montage.jpg");
 }
 
-void on_mouse(int event, int x, int y, int flag, void* p) {
-    int* index = (int*)p;
+/*
+ * Stardard callback for mouse event, add or remove constraints
+ */
+void on_mouse(int event, int x, int y, int, void* p) {
+    int* index = (int*)p; // get index of the photo
     set<pair<int,int>>* constraint = &constraints[*index];
     switch (event) {
         case EVENT_LBUTTONDOWN:
+            // add constraints
             for (int i = 0 - range; i <= range; i++)
                 for (int j = 0 - range; j <= range; j++) {
                     int _x = x + i;
                     int _y = y + j;
-                    if (i * i + j * j <= range * range)
+                    if (i * i + j * j <= range * range) // a small circle
                         if (_x >= 0 && _x < photos[*index].cols && _y >= 0 && _y <= photos[*index].rows)
                             constraint->insert(make_pair(_y, _x));
                 }
             break;
         case EVENT_RBUTTONDOWN:
+            // remove constraints
             constraint->clear();
             break;
         default:
             return;
     }
+
+    // redraw the image with constraints
     Mat tmp = photos[*index].clone();
     for (auto px : *constraint)
-        tmp.at<Vec3b>(px.first, px.second) = Vec3b(0, 255, 0);
+        tmp.at<Vec3b>(px.first, px.second) = Vec3b(0, 255, 0); // mark the constraints in green
     imshow(input_files[*index] + to_string(*index), tmp);
+
     assemble();
 
 }
 
+/*
+ * Callback for moving the picture, the value of trackbar has already been changed, no need to do anythhing
+ */
 void on_trackbar(int, void*){
     assemble();
 }
@@ -127,11 +144,15 @@ int main(int argc, char** argv) {
         constraints.push_back(constraint);
     }
 
+    // use global variables for relative position
+
     value_row = new int[num_files];
     value_col = new int[num_files];
 
     Mat output(height, width, CV_8UC3);
     montage = Montage(height, width, extra_height, extra_width);
+
+    // add control panels
 
     for (int i = 0; i < num_files; i++) {
         namedWindow(input_files[i] + to_string(i), CV_GUI_NORMAL);
@@ -149,6 +170,8 @@ int main(int argc, char** argv) {
 
     assemble();
     waitKey(0);
+
+    // retrieve the result
 
     montage.save_output(output);
 
