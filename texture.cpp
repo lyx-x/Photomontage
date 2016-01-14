@@ -45,7 +45,7 @@ void generate(Mat& input, Mat& output, int iteration, float scaling_factor, floa
 
     // loop in order to cover the whole image
 
-    Montage montage(height, width);
+    Montage montage(height, width, height / 3, width / 3);
     montage.add_photo(input);
     montage.reset();
     montage.assemble(0, 0, 0); // add the first image
@@ -135,7 +135,7 @@ int main(int argc, char** argv) {
     // allocate the memory and load the image
 
     Mat input = imread(input_file, IMREAD_COLOR);
-    Mat output(height + 2 * input.rows / 3, width + 2 * input.cols / 3, CV_8UC3);
+    Mat output(height, width, CV_8UC3);
 
     imshow(input_file, input);
 
@@ -145,11 +145,9 @@ int main(int argc, char** argv) {
 
     // show/save the result
 
-    Rect rect(input.cols / 3, input.rows / 3, width - input.cols / 3 - 1, height - input.rows / 3 - 1);
-    Mat output_nap = output(rect);
-    imwrite(output_file, output_nap);
+    imwrite(output_file, output);
 
-    imshow(output_file, output_nap);
+    imshow(output_file, output);
     waitKey(0);
 
     return EXIT_SUCCESS;

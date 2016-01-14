@@ -45,6 +45,7 @@ void assemble() {
     for(int i = 0; i < photos.size(); i++)
         montage.assemble(i, value_row[i], value_col[i], &constraints[i]);
     montage.show();
+    montage.save_mask("results/mask_montage.jpg");
 }
 
 void on_mouse(int event, int x, int y, int flag, void* p) {
@@ -70,8 +71,9 @@ void on_mouse(int event, int x, int y, int flag, void* p) {
     Mat tmp = photos[*index].clone();
     for (auto px : *constraint)
         tmp.at<Vec3b>(px.first, px.second) = Vec3b(0, 255, 0);
-    imshow(input_files[*index], tmp);
+    imshow(input_files[*index] + to_string(*index), tmp);
     assemble();
+
 }
 
 void on_trackbar(int, void*){
@@ -108,8 +110,8 @@ int main(int argc, char** argv) {
                 return EXIT_FAILURE;
         }
 
-    int extra_height = height / 4; // extra space to manipulate the nap
-    int extra_width = width / 4;
+    int extra_height = height / 6; // extra space to manipulate the nap
+    int extra_width = width / 6;
 
     // preparation
 
@@ -128,24 +130,31 @@ int main(int argc, char** argv) {
     value_row = new int[num_files];
     value_col = new int[num_files];
 
-    Mat output;
-    montage = Montage(height + extra_height, width + extra_width);
+    Mat output(height, width, CV_8UC3);
+    montage = Montage(height, width, extra_height, extra_width);
 
     for (int i = 0; i < num_files; i++) {
-        namedWindow(input_files[i], CV_GUI_NORMAL);
-        imshow(input_files[i], photos[i]);
+        namedWindow(input_files[i] + to_string(i), CV_GUI_NORMAL);
+        imshow(input_files[i] + to_string(i), photos[i]);
         montage.add_photo(photos[i]);
         // set random position at first
-        value_row[i] = rand() % (height + extra_height - photos[i].rows);
-        value_col[i] = rand() % (width + extra_width - photos[i].cols);
+        value_row[i] = rand() % (height + extra_height * 2 - photos[i].rows);
+        value_col[i] = rand() % (width + extra_width * 2 - photos[i].cols);
         // add position control
-        createTrackbar("Row", input_files[i], value_row + i, height + extra_height - photos[i].rows - 1, on_trackbar);
-        createTrackbar("Col", input_files[i], value_col + i, width + extra_width - photos[i].cols - 1, on_trackbar);
+        createTrackbar("Row", input_files[i] + to_string(i), value_row + i, height + extra_height * 2 - photos[i].rows - 1, on_trackbar);
+        createTrackbar("Col", input_files[i] + to_string(i), value_col + i, width + extra_width * 2 - photos[i].cols - 1, on_trackbar);
         // add mouse callback
-        setMouseCallback(input_files[i], on_mouse, &photo_index[i]);
+        setMouseCallback(input_files[i] + to_string(i), on_mouse, &photo_index[i]);
     }
 
     assemble();
+    waitKey(0);
+
+    montage.save_output(output);
+
+    imwrite(output_file, output);
+
+    imshow(output_file, output);
     waitKey(0);
 
     return EXIT_SUCCESS;

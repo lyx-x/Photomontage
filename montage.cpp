@@ -6,11 +6,12 @@
 #include <map>
 #include "maxflow/graph.h"
 
+
 const int infinity = 1<<30;
 
-Montage::Montage(int height, int width) {
-    max_row = height;
-    max_col = width;
+Montage::Montage(int row, int col, int ex_row, int ex_col): extra_row(ex_row), extra_col(ex_col) {
+    max_row = row + 2 * ex_row;
+    max_col = col + 2 * ex_col;
     nap = Mat(max_row, max_col, CV_8UC3);
     mask = Mat(max_row, max_col, CV_16SC3);
     fixed = Mat(max_row, max_col, CV_8SC1);
@@ -176,7 +177,7 @@ void Montage::assemble(int index, int offset_row, int offset_col, set<pair<int,i
            graph.add_tweights(i,0,infinity);
         else if (int(fixed.at<schar>(row_mask, col_mask)) != -1)
             graph.add_tweights(i,infinity,0);
-        else if (is_center_photo(overlap[i], index) && constraint->size() == 0) { // the center of patch must remain
+        else if (is_center_photo(overlap[i], index) && constraint == NULL) { // the center of patch must remain
             graph.add_tweights(i, 0, infinity);
         } else {
             if (is_border_mask(overlap[i].first + offset_row, overlap[i].second + offset_col)) {
@@ -218,7 +219,7 @@ void Montage::reset() {
         }
 }
 
-void Montage::show() const {
+void Montage::show() {
     map<int,int> colors;
     int index = 0;
     short c;
@@ -237,12 +238,27 @@ void Montage::show() const {
             c = mask.at<Vec3s>(row, col)[0];
             tmp.at<uchar>(row, col) = uchar(colors[c] * 255.0 / colors.size());
         }
+
+    // add border
+    for (int row = 0; row < mask.rows; row++) {
+        nap.at<Vec3b>(row, extra_col - 1) = Vec3b(0, 255, 0);
+        nap.at<Vec3b>(row, nap.cols - extra_col) = Vec3b(0, 255, 0);
+        tmp.at<uchar>(row, extra_col - 1) = 255;
+        tmp.at<uchar>(row, tmp.cols - extra_col) = 255;
+    }
+    for (int col = 0; col < mask.cols; col++) {
+        nap.at<Vec3b>(extra_row - 1, col) = Vec3b(0, 255, 0);
+        nap.at<Vec3b>(nap.rows - extra_row, col) = Vec3b(0, 255, 0);
+        tmp.at<uchar>(extra_row - 1, col) = 255;
+        tmp.at<uchar>(nap.rows - extra_row, col) = 255;
+    }
+
     imshow("Mask", tmp);
     imshow("Image", nap);
 }
 
 void Montage::save_mask(string mask_name) const {
-    Rect rect(photos[0].cols / 3, photos[0].rows / 3, max_col - photos[0].cols / 3 - 1, max_row - photos[0].rows / 3 - 1);
+    Rect rect(extra_col, extra_row, max_col - 2 * extra_col, max_row - 2 * extra_row);
 
     // find all existing patches
 
@@ -278,7 +294,7 @@ void Montage::save_mask(string mask_name) const {
 }
 
 void Montage::save_output(Mat &output) const {
-    for (int row = 0; row < nap.rows; row++)
-        for (int col = 0; col < nap.cols; col++)
-            output.at<Vec3b>(row, col) = nap.at<Vec3b>(row, col);
+    for (int row = 0; row < output.rows; row++)
+        for (int col = 0; col < output.cols; col++)
+            output.at<Vec3b>(row, col) = nap.at<Vec3b>(row + extra_row, col + extra_col);
 }

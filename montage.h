@@ -20,6 +20,7 @@ class Montage {
 
     int max_row = 600; // number of rows in the output
     int max_col = 1024; // number of columns in the output
+    int extra_row, extra_col;
     int center_size = 8;
 
 private:
@@ -33,11 +34,11 @@ private:
     inline int cost(int index_a, int index_b, int row1, int col1, int row2, int col2) const;
 
 public:
-    Montage(int height, int width);
+    Montage(int row, int col, int extra_row = 0, int extra_col = 0);
     void add_photo(Mat photo); // add a photo to queue
     void assemble(int index, int row, int col, set<pair<int,int>> *constraint = NULL); // add a new image at a specific position
     void reset();
-    void show() const; // show result
+    void show(); // show result
     void save_mask(string mask_name) const; // save the mask after cropping
     void save_output(Mat &output) const; // export the nap to output without cropping
 };
